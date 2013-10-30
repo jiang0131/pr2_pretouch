@@ -1,0 +1,15 @@
+<launch>
+
+  <node name="sound_publisher_right" pkg="pr2_pretouch_sensors" type="pub_sound.py">
+    <param name="side" value="right" />
+  </node>
+
+  <node name="acoustic_pretouch_right" pkg="pr2_pretouch_sensors" type="acoustic_pretouch_one_hand.py" output="screen">
+    <param name="side" value="right" />
+  </node>
+
+  <node name="constant_noise" pkg="pr2_pretouch_sensors" type="constant_noise.py" output="screen">
+    <param name="volume" type="double" value="0.40" />
+    <param name="sound_file" value="$(find pr2_pretouch_sensors)/sound/whitenoise_band_limited.wav" />
+  </node>
+</launch>

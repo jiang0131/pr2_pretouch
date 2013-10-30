@@ -1,0 +1,23 @@
+<package>
+  <name>pr2_pretouch</name>
+  <version>0.1.0</version>
+  <description>The pr2_pretouch package</description>
+  <author email="jianglt@uw.edu">Liang-Ting Jiang</author>
+  <maintainer email="jianglt@uw.edu">Liang-Ting Jiang</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://moveit.ros.org</url>
+  <url type="bugtracker">https://github.com/jiang0131/pr2_pretouch/issues</url>
+  <url type="repository">https://github.com/jiang0131/pr2_pretouch</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>pr2_pretouch_sensors</run_depend>
+  <run_depend>pr2_pretouch_msgs</run_depend>
+
+  <export>
+    <metapackage/>
+  </export>
+
+</package>
