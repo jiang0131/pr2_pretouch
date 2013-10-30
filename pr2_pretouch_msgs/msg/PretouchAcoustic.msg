@@ -1,0 +1,11 @@
+Header header
+float64 distance
+float64 frequency
+float64 frequency_raw
+float64 frequency_2
+float64 frequency_raw_2
+float64 orientation
+float64 amp_in
+float64 amp_out
+float64 amp_diff
+float64 amp_freq
