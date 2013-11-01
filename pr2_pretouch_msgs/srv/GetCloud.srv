@@ -1,0 +1,4 @@
+---
+sensor_msgs/PointCloud pretouch_cloud
+sensor_msgs/PointCloud combined_cloud
+sensor_msgs/PointCloud stereo_cloud
