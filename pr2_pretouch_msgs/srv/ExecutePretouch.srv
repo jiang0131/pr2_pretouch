@@ -1,0 +1,5 @@
+pr2_pretouch_msgs/Probe r_probe
+pr2_pretouch_msgs/Probe l_probe
+---
+bool success
+

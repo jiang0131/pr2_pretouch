@@ -6,6 +6,8 @@ project(pr2_pretouch_msgs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
+  household_objects_database_msgs
+  manipulation_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -28,21 +30,30 @@ add_message_files(
   SoundSpectrum.msg
   NoiseVolume.msg
   PretouchAcoustic.msg
+  Probe.msg
   ProbeTarget.msg
+  Grasp.msg
+  GraspableObject.msg
 )
 
 # Generate services in the 'srv' folder
 add_service_files(
   FILES
-  Probe.srv
   AddCloud.srv
   GetCloud.srv
+  AddPoint.srv
+  ExecutePretouch.srv
+  FindPretouch.srv
+  GetProbabilisticPointCloud.srv
+  GraspPlanning.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   object_recognition_msgs
+  household_objects_database_msgs
+  manipulation_msgs
 )
 
 ###################################

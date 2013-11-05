@@ -1,0 +1,5 @@
+---
+sensor_msgs/PointCloud cloud
+sensor_msgs/PointCloud original_cloud
+float32[] probabilities
+geometry_msgs/Transform table_tf

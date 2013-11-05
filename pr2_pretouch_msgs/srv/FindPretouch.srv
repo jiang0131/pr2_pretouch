@@ -1,0 +1,9 @@
+pr2_pretouch_msgs/GraspableObject target
+pr2_pretouch_msgs/Grasp[] grasps
+int32 num_grasp_candidates_required
+---
+Probe r_probe
+Probe l_probe
+pr2_pretouch_msgs/Grasp[] grasp_candidates
+bool ready_to_grasp
+
