@@ -94,7 +94,7 @@ class TabletopOctomapServer : public OctomapServer{
 
 public:
 	
-  TabletopOctomapServer();
+  TabletopOctomapServer(ros::NodeHandle priv_nh_ = ros::NodeHandle("~"));
   virtual ~TabletopOctomapServer();
 
 	//override
@@ -194,6 +194,9 @@ protected:
 											      const PCLPointCloud::Ptr shadow_pc,
 														const octomap::KeySet &obj_occupied_cells,
 														const int object_idx);
+
+  // Overwrite this to use probability color map
+  void publishAllProbMap(const ros::Time& rostime = ros::Time::now());
 
 	ros::NodeHandle priv_nh_;
 	ros::Publisher m_markerPub, m_objectPointsPub, m_tablePointsPub, m_intersectPointsPub,

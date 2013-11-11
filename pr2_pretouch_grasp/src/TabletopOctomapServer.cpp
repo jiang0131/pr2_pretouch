@@ -33,9 +33,8 @@ namespace octomap_server{
 /*////////////////////////////////////////////////////////////////////////////////////////
 * Constructor
 */////////////////////////////////////////////////////////////////////////////////////////
-TabletopOctomapServer::TabletopOctomapServer()
-: OctomapServer(),
-priv_nh_("~"),
+TabletopOctomapServer::TabletopOctomapServer(ros::NodeHandle priv_nh_)
+: OctomapServer(priv_nh_),
 m_tabletopProcessingFrame("camera_rgb_optical_frame"),
 m_camera_frame_id("camera_rgb_optical_frame"),
 m_probPretouchHit(0.9), m_probPretouchMiss(0.1),
@@ -70,6 +69,8 @@ m_object_idx(0) // temperary variable
 	//publisher for visualize endPoints pointclouds (debug)
 	m_endPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("end_points", 10);
 
+  // LT new
+  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
 
   //initialize parameters
   priv_nh_.param("frame_id", m_tabletopProcessingFrame, m_tabletopProcessingFrame);
@@ -169,7 +170,6 @@ bool TabletopOctomapServer::tabletopProcessingSrv(std_srvs::Empty::Request& req,
 
 	//assign prior in Octomap for suspicious transparent part
 	initTransparentPrior(object_pc, shadow_pc, obj_occupied_cells, m_object_idx);	
-  publishAll(snapshot_pc2.header.stamp);
 
 	//publish pointcloud for visualization
   sensor_msgs::PointCloud2 pc2;
@@ -181,7 +181,7 @@ bool TabletopOctomapServer::tabletopProcessingSrv(std_srvs::Empty::Request& req,
   ROS_INFO("Tabletop Octomap created in TabletopOctomapServer done (%zu+%zu pts (object/table), %f sec)", object_pc->size(), sim_table_pc->size(), total_elapsed);
 
   //publish to all topics
-  publishAll(snapshot_pc2.header.stamp);
+  publishAllProbMap(snapshot_pc2.header.stamp);
 
 	return true; 
 }
@@ -2094,218 +2094,9 @@ void TabletopOctomapServer::fillHole(PCLPointCloud::Ptr cloud) {
   pcl::io::saveVTKFile ("mesh.vtk", triangles);
 }
 
-/*
-void TabletopOctomapServer::publishMarkerArray(const ros::Time& rostime) {
-
-}
-
-
-void TabletopOctomapServer::publishAll(const ros::Time& rostime){
-  std::cout<<"11111111111111111"<<std::endl;  
-  std::cout<<m_latchedTopics<<std::endl;  
-  std::cout<<m_tabletopProcessingFrame<<std::endl;  
-  std::cout<<"22222222222222222"<<std::endl;  
-
-  ros::WallTime startTime = ros::WallTime::now();
-  size_t octomapSize = m_octree->size();
-  // TODO: estimate num occ. voxels for size of arrays (reserve)
-  if (octomapSize <= 1){
-    ROS_WARN("Nothing to publish, octree is empty");
-    return;
-  }
-
-  bool publishCollisionMap = (m_latchedTopics || m_cmapPub.getNumSubscribers() > 0);
-  bool publishCollisionObject = (m_latchedTopics || m_collisionObjectPub.getNumSubscribers() > 0);
-  bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
-  bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
-  bool publishOctoMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
-  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
-
-  // init collision object:
-  arm_navigation_msgs::CollisionObject collisionObject;
-  collisionObject.header.frame_id = m_worldFrameId;
-  collisionObject.header.stamp = rostime;
-  collisionObject.id = "map";
-  arm_navigation_msgs::OrientedBoundingBox collObjBox;
-  collObjBox.axis.x = collObjBox.axis.y = 0.0;
-  collObjBox.axis.z = 1.0;
-  collObjBox.angle = 0.0;
-
-  //init collision map:
-  arm_navigation_msgs::CollisionMap collisionMap;
-  collisionMap.header.frame_id = m_worldFrameId;
-  collisionMap.header.stamp = rostime;
-  arm_navigation_msgs::Shape collObjShape;
-  collObjShape.type = arm_navigation_msgs::Shape::BOX;
-  collObjShape.dimensions.resize(3);
-
-  geometry_msgs::Pose pose;
-  pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
-
-  // init markers:
-  visualization_msgs::MarkerArray occupiedNodesVis;
-  // each array stores all cubes of a different size, one for each depth level:
-  occupiedNodesVis.markers.resize(m_treeDepth+1);
-
-  // init pointcloud:
-  pcl::PointCloud<pcl::PointXYZ> pclCloud;
-
-  // call pre-traversal hook:
-  handlePreNodeTraversal(rostime);
-
-  // now, traverse all leafs in the tree:
-  for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth),
-      end = m_octree->end(); it != end; ++it)
-  {
-    //find its probability
-    bool prob = it->getLogOdds();
-
-    bool inUpdateBBX = isInUpdateBBX(it.getKey());
-
-    // call general hook:
-    handleNode(it);
-    if (inUpdateBBX)
-      handleNodeInBBX(it);
-
-    if (m_octree->isNodeOccupied(*it)){
-      double z = it.getZ();
-      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
-      {
-        double size = it.getSize();
-        double x = it.getX();
-        double y = it.getY();
-
-        // Ignore speckles in the map:
-        if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())){
-          ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
-          continue;
-        } // else: current octree node is no speckle, send it out
-
-        handleOccupiedNode(it);
-        if (inUpdateBBX)
-          handleOccupiedNodeInBBX(it);
-
-
-        // create collision object:
-        if (publishCollisionObject){
-          collObjShape.dimensions[0] = collObjShape.dimensions[1] = collObjShape.dimensions[2] = size;
-          collisionObject.shapes.push_back(collObjShape);
-          pose.position.x = x;
-          pose.position.y = y;
-          pose.position.z = z;
-          collisionObject.poses.push_back(pose);
-        }
-
-        if (publishCollisionMap){
-          collObjBox.extents.x = collObjBox.extents.y = collObjBox.extents.z = size;
-
-          collObjBox.center.x = x;
-          collObjBox.center.y = y;
-          collObjBox.center.z = z;
-
-          collisionMap.boxes.push_back(collObjBox);
-
-        }
-
-        //create marker:
-        if (publishMarkerArray){
-          unsigned idx = it.getDepth();
-          assert(idx < occupiedNodesVis.markers.size());
-
-          geometry_msgs::Point cubeCenter;
-          cubeCenter.x = x;
-          cubeCenter.y = y;
-          cubeCenter.z = z;
-
-          occupiedNodesVis.markers[idx].points.push_back(cubeCenter);
-
-          if (m_useProbMap) {
-            double minP = -4;
-            double maxP = 4;
-            double h = (1.0 - std::min(std::max((prob-minP)/ (maxP - minP), 0.0), 1.0)) *m_colorFactor;
-            occupiedNodesVis.markers[idx].colors.push_back(heightMapColor(h));            
-          }   
-          else if (m_useHeightMap) {
-
-//          if (m_useHeightMap) {
-            double minX, minY, minZ, maxX, maxY, maxZ;
-            m_octree->getMetricMin(minX, minY, minZ);
-            m_octree->getMetricMax(maxX, maxY, maxZ);
-
-            double h = (1.0 - std::min(std::max((cubeCenter.z-minZ)/ (maxZ - minZ), 0.0), 1.0)) *m_colorFactor;
-            occupiedNodesVis.markers[idx].colors.push_back(heightMapColor(h));
-          }
-        }
-
-        // insert into pointcloud:
-        if (publishPointCloud)
-          pclCloud.push_back(pcl::PointXYZ(x, y, z));
-
-      }
-    } else{ // node not occupied => mark as free in 2D map if unknown so far
-      handleFreeNode(it);
-      if (inUpdateBBX)
-        handleFreeNodeInBBX(it);
-    }
-  }
-
-  // call post-traversal hook:
-  handlePostNodeTraversal(rostime);
-
-  // finish MarkerArray:
-  if (publishMarkerArray){
-    for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
-      double size = m_octree->getNodeSize(i);
-
-      occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
-      occupiedNodesVis.markers[i].header.stamp = rostime;
-      occupiedNodesVis.markers[i].ns = "map";
-      occupiedNodesVis.markers[i].id = i;
-      occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
-      occupiedNodesVis.markers[i].scale.x = size;
-      occupiedNodesVis.markers[i].scale.y = size;
-      occupiedNodesVis.markers[i].scale.z = size;
-      occupiedNodesVis.markers[i].color = m_color;
-
-
-      if (occupiedNodesVis.markers[i].points.size() > 0)
-        occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
-      else
-        occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
-    }
-
-
-    m_markerPub.publish(occupiedNodesVis);
-  }
-  // finish pointcloud:
-  if (publishPointCloud){
-    sensor_msgs::PointCloud2 cloud;
-    pcl::toROSMsg (pclCloud, cloud);
-    cloud.header.frame_id = m_worldFrameId;
-    cloud.header.stamp = rostime;
-    m_pointCloudPub.publish(cloud);
-  }
-
-  if (publishCollisionObject)
-    m_collisionObjectPub.publish(collisionObject);
-
-  if (publishCollisionMap)
-    m_cmapPub.publish(collisionMap);
-
-  if (publishOctoMap)
-    publishMap(rostime);
-
-  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
-
-}
-*/
-
-    //find its probability
-//    bool prob = it->getLogOdds();
 
 void TabletopOctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud) {
-	//ROS_INFO("Do Nothing");
+	// Do Nothing
 }
 
 void TabletopOctomapServer::getProbabilisticPointCloud (sensor_msgs::PointCloud &cloud,
@@ -2374,6 +2165,206 @@ void TabletopOctomapServer::getProbabilisticPointCloud (sensor_msgs::PointCloud 
   */
 
 	std::cout << "size of the probability: " << probabilities.size() << std::endl;
+}
+
+
+void TabletopOctomapServer::publishAllProbMap(const ros::Time& rostime) {
+  ros::WallTime startTime = ros::WallTime::now();
+  size_t octomapSize = m_octree->size();
+  // TODO: estimate num occ. voxels for size of arrays (reserve)
+  if (octomapSize <= 1){
+    ROS_WARN("Nothing to publish, octree is empty");
+    return;
+  }
+
+  bool publishFreeMarkerArray = m_publishFreeSpace && (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
+  bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
+  bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
+  bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
+  bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
+  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
+
+  // init markers for free space:
+  visualization_msgs::MarkerArray freeNodesVis;
+  // each array stores all cubes of a different size, one for each depth level:
+  freeNodesVis.markers.resize(m_treeDepth+1);
+
+  geometry_msgs::Pose pose;
+  pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
+
+  // init markers:
+  visualization_msgs::MarkerArray occupiedNodesVis;
+  // each array stores all cubes of a different size, one for each depth level:
+  occupiedNodesVis.markers.resize(m_treeDepth+1);
+
+  // init pointcloud:
+  pcl::PointCloud<pcl::PointXYZ> pclCloud;
+
+  // call pre-traversal hook:
+  handlePreNodeTraversal(rostime);
+
+  // now, traverse all leafs in the tree:
+  for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth),
+      end = m_octree->end(); it != end; ++it)
+  {
+    bool inUpdateBBX = isInUpdateBBX(it);
+
+    // call general hook:
+    handleNode(it);
+    if (inUpdateBBX)
+      handleNodeInBBX(it);
+
+    if (m_octree->isNodeOccupied(*it)){
+      double z = it.getZ();
+      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      {
+        double size = it.getSize();
+        double x = it.getX();
+        double y = it.getY();
+
+        // Ignore speckles in the map:
+        if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())){
+          ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
+          continue;
+        } // else: current octree node is no speckle, send it out
+
+        handleOccupiedNode(it);
+        if (inUpdateBBX)
+          handleOccupiedNodeInBBX(it);
+
+
+        //create marker:
+        if (publishMarkerArray){
+          unsigned idx = it.getDepth();
+          assert(idx < occupiedNodesVis.markers.size());
+
+          geometry_msgs::Point cubeCenter;
+          cubeCenter.x = x;
+          cubeCenter.y = y;
+          cubeCenter.z = z;
+
+          occupiedNodesVis.markers[idx].points.push_back(cubeCenter);
+          if (m_useHeightMap){
+            double minX, minY, minZ, maxX, maxY, maxZ;
+            m_octree->getMetricMin(minX, minY, minZ);
+            m_octree->getMetricMax(maxX, maxY, maxZ);
+
+            //double h = (1.0 - std::min(std::max((cubeCenter.z-minZ)/ (maxZ - minZ), 0.0), 1.0)) *m_colorFactor;
+            // ProbabilityMap
+            double minP = 0;
+            double maxP = 4;
+            double prob = it->getLogOdds();
+            double h = (1.0 - std::min(std::max((prob-minP)/ (maxP - minP), 0.0), 1.0)) *m_colorFactor;
+            occupiedNodesVis.markers[idx].colors.push_back(heightMapColor(h));
+          }
+        }
+
+        // insert into pointcloud:
+        if (publishPointCloud)
+          pclCloud.push_back(pcl::PointXYZ(x, y, z));
+
+      }
+    } else{ // node not occupied => mark as free in 2D map if unknown so far
+      double z = it.getZ();
+      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      {
+        handleFreeNode(it);
+        if (inUpdateBBX)
+          handleFreeNodeInBBX(it);
+
+        if (m_publishFreeSpace){
+          double x = it.getX();
+          double y = it.getY();
+
+          //create marker for free space:
+          if (publishFreeMarkerArray){
+            unsigned idx = it.getDepth();
+            assert(idx < freeNodesVis.markers.size());
+
+            geometry_msgs::Point cubeCenter;
+            cubeCenter.x = x;
+            cubeCenter.y = y;
+            cubeCenter.z = z;
+
+            freeNodesVis.markers[idx].points.push_back(cubeCenter);
+          }
+        }
+
+      }
+    }
+  }
+
+  // call post-traversal hook:
+  handlePostNodeTraversal(rostime);
+
+  // finish MarkerArray:
+  if (publishMarkerArray){
+    for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
+      double size = m_octree->getNodeSize(i);
+
+      occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
+      occupiedNodesVis.markers[i].header.stamp = rostime;
+      occupiedNodesVis.markers[i].ns = "map";
+      occupiedNodesVis.markers[i].id = i;
+      occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+      occupiedNodesVis.markers[i].scale.x = size;
+      occupiedNodesVis.markers[i].scale.y = size;
+      occupiedNodesVis.markers[i].scale.z = size;
+      occupiedNodesVis.markers[i].color = m_color;
+
+
+      if (occupiedNodesVis.markers[i].points.size() > 0)
+        occupiedNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
+      else
+        occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+    }
+    m_markerPub.publish(occupiedNodesVis);
+  }
+
+
+  // finish FreeMarkerArray:
+  if (publishFreeMarkerArray){
+    for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
+      double size = m_octree->getNodeSize(i);
+
+      freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
+      freeNodesVis.markers[i].header.stamp = rostime;
+      freeNodesVis.markers[i].ns = "map";
+      freeNodesVis.markers[i].id = i;
+      freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+      freeNodesVis.markers[i].scale.x = size;
+      freeNodesVis.markers[i].scale.y = size;
+      freeNodesVis.markers[i].scale.z = size;
+      freeNodesVis.markers[i].color = m_colorFree;
+
+
+      if (freeNodesVis.markers[i].points.size() > 0)
+        freeNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
+      else
+        freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+    }
+
+    m_fmarkerPub.publish(freeNodesVis);
+  }
+
+
+  // finish pointcloud:
+  if (publishPointCloud){
+    sensor_msgs::PointCloud2 cloud;
+    pcl::toROSMsg (pclCloud, cloud);
+    cloud.header.frame_id = m_worldFrameId;
+    cloud.header.stamp = rostime;
+    m_pointCloudPub.publish(cloud);
+  }
+
+  if (publishBinaryMap)
+    publishBinaryOctoMap(rostime);
+
+  if (publishFullMap)
+    publishFullOctoMap(rostime);
+
+  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+  ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
 }
 
 } //end of namespace
