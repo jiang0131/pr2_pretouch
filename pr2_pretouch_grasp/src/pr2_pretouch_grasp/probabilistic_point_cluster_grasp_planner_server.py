@@ -1,5 +1,12 @@
+#!/usr/bin/python
 import rospy
+import time
 from uw_pr2_gripper_grasp_planner_cluster.point_cluster_grasp_planner_server import PointClusterGraspPlannerServer
+from pr2_pretouch_msgs.srv import FindPretouch, FindPretouchResponse
+from pr2_pretouch_msgs.srv import ExecutePretouch, ExecutePretouchResponse
+from manipulation_msgs.msg import GraspPlanningErrorCode
+from moveit_msgs.msg import Grasp, GripperTranslation
+from uw_pr2_gripper_grasp_planner_cluster.convert_functions import *
 import probabilistic_point_cluster_grasp_planner
 import pretouch_computer
 import pretouch_executor
@@ -8,12 +15,37 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
 
   def __init__(self):
     PointClusterGraspPlannerServer.__init__(self)
+
     # A ProabailisticGraspPlanner instance
     self.pcgp = probabilistic_point_cluster_grasp_planner.ProbabilisticPointClusterGraspPlanner()
+
+    '''
+    #advertise service and action for planning grasps
+    rospy.Service('plan_probabilistic_point_cluster_grasp', GraspPlanning, self.plan_point_cluster_grasp_callback)
+    self._as = actionlib.SimpleActionServer('plan_probabilistic_point_cluster_grasp', GraspPlanningAction,
+                                            execute_cb = self.plan_point_cluster_grasp_execute_cb)
+
+    #advertise service for evaluating grasps
+    rospy.Service('evaluate_probabilistic_point_cluster_grasps', GraspPlanning, self.evaluate_point_cluster_grasps_callback)
+
+    #advertise service for changing params
+    rospy.Service('set_probabilistic_point_cluster_grasp_params', SetPointClusterGraspParams, self.set_point_cluster_grasp_params_callback)
+
+    #param to randomize grasps (generally a bad idea, unless you actually want bad grasps.)
+    self.randomize_grasps = rospy.get_param("~randomize_grasps", 0)
+    rospy.loginfo("randomize_grasps:"+str(self.randomize_grasps))
+    random.seed()
+
+    #start the action server
+    self._as.start()
+    '''
+
+    rospy.loginfo("point cluster probabilistic grasp planner service/action is ready")
+
     # A PretouchComputer instance
     self.ptc = pretouch_computer.PretouchComputer(self.pcgp.tf_listener, self.pcgp.tf_broadcaster)
     # A PretouchExecutor instance
-    self.pte = pretouch_executor.PretouchExecutor(self.pcgp.tf_listener, self.pcgp.tf_broadcaster)
+    self.pte = pretouch_executor.PretouchExecutor(side='r', tf_listener=self.pcgp.tf_listener, tf_broadcaster=self.pcgp.tf_broadcaster, ctrl_mng=None, moveit_cmdr=None)
     #advertise service for find a pretouch approach on the object
     rospy.Service('find_pretouch', FindPretouch, self.find_pretouch_callback)
     #advertise service for execute a computed pretouch
@@ -30,40 +62,53 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
 
     #self.side_arm()
     if r_probe.required:
-      print 'len(r_probe.pretouch_joint_states.position) = ', len(r_probe.pretouch_joint_states.position)
       print 'r_probe is requred....'
-      result1 = self.pte.move_to_joint_goal(r_probe.pretouch_joint_states.position)
+      print "r_probe.pretouch_pose = ", r_probe.pretouch_pose
+      #result1 = self.pte.move_to_joint_goal(r_probe.pretouch_joint_states.position)
+      result1 = self.pte.move_to_pose_goal(r_probe.pretouch_pose)
       if result1:
         print 'move to pretouch pose successfully, continue'
+        self.pte.current_mat = pose_to_mat(r_probe.pretouch_pose)
         result1 = self.pte.pretouch_probe()
         print 'r_probe pretouch probe result: ', result1
       else:
-        print 'failed to move to pretouch pose, cancel the r_probe'
+        rospy.logerr('failed to move to pretouch pose, cancel the r_probe and trying to reset the arm ...')
+        res = self.pte.move_arm_to_side()
+        if res:
+          rospy.logerr('arm was reset to the side')
+        else:
+          rospy.logerr('failed to reset the arm to the side')
+          
     else:
-      print 'r_probe is NOT requred....'
+      print 'r_probe is NOT required....'
 
     if l_probe.required:
-      print 'len(l_probe.pretouch_joint_states.position) = ', len(l_probe.pretouch_joint_states.position)
       print 'l_probe is requred....'
-      result2 = self.pte.move_to_joint_goal(l_probe.pretouch_joint_states.position)
+      print "l_probe.pretouch_pose = ", l_probe.pretouch_pose
+      #result2 = self.pte.move_to_joint_goal(l_probe.pretouch_joint_states.position)
+      result2 = self.pte.move_to_pose_goal(l_probe.pretouch_pose)
       if result2:
         print 'move to l_pretouch pose successfully, continue'
+        self.pte.current_mat = pose_to_mat(l_probe.pretouch_pose)
         result2 = self.pte.pretouch_probe()
         print 'l_probe pretouch probe result: ', result2
       else:
-        print 'failed to move to pretouch pose, cancel the l_probe'
+        rospy.logerr('failed to move to pretouch pose, cancel the l_probe and trying to reset the arm ...')
+        res = self.pte.move_arm_to_side()
+        if res:
+          rospy.logerr('arm was reset to the side')
+        else:
+          rospy.logerr('failed to reset the arm to the side')
     else:
-      print 'l_probe is NOT requred....'
+      print 'l_probe is NOT required....'
 
-    if (not result1) and (not result2):
-      print 'Somthing Wrong with the Move Arm, Move Arms Back to the sides'
-      self.pte.arm_tasks.move_arm_to_side('right_arm')
-
-    rospy.loginfo('the pretouch exploration has finished')
-
-    #move back to initial pose 
-    #self.pte.arm_tasks.move_arm_to_side('right_arm')
-    #move arm to some other good poses?
+    if r_probe.required or l_probe.required:
+      if (not result1) and (not result2):
+        rospy.loginfo('Failed to do pretouch!')
+      else:
+        rospy.loginfo('the pretouch exploration has finished')
+    else:
+      rospy.loginfo('Ready to grasp')
 
     return resp
 
@@ -84,10 +129,9 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
     resp.ready_to_grasp = ready_to_grasp
 
     #draw the selected grasp (which is able to be pretouched)
-    print 'DRAWING THE GRASP CANDIDATE!!!'
-    pose_mat = pose_to_mat(grasp.grasp_pose)
-    self.pcgp.draw_gripper_model(pose_mat, frame = self.cluster_frame, pause_after_broadcast = 0, duration = 5)
-    self.pcgp.draw_gripper_model(pose_mat, frame = self.cluster_frame, pause_after_broadcast = 0, duration = 5)
+    pose_mat = pose_to_mat(grasp.grasp_pose.pose)
+    self.pcgp.draw_gripper_model(pose_mat, frame = self.cluster_frame, pause_after_broadcast = 0)
+    self.pcgp.draw_gripper_model(pose_mat, frame = self.cluster_frame, pause_after_broadcast = 0)
 
     return resp
 
@@ -122,6 +166,8 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
 
 
   def plan_point_cluster_grasps(self, target, arm_name):
+
+    rospy.loginfo("Probabilistic Version! ")
     error_code = GraspPlanningErrorCode()
     grasps = []
 
@@ -195,6 +241,7 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
     if pregrasp_poses == None:
       error_code.value = error_code.OTHER_ERROR
       return (grasps, error_code)
+
     #fill in the list of grasps
     for (grasp_pose, quality, pregrasp_dist) in zip(grasp_poses, qualities, pregrasp_dists):
       pre_grasp_joint_state = self.create_joint_trajectory(hand_joints, pregrasp_joint_angles, pregrasp_joint_efforts)
@@ -220,88 +267,16 @@ class ProbabilisticPointClusterGraspPlannerServer(PointClusterGraspPlannerServer
                               grasp_pose=transformed_grasp_pose, grasp_quality=quality,
                                 pre_grasp_approach=approach, post_grasp_retreat=retreat, max_contact_force=-1))
 
-      #if requested, randomize the first few grasps
-      if self.randomize_grasps:
-        first_grasps = grasp_list[:30]
-        random.shuffle(first_grasps)
-        shuffled_grasp_list = first_grasps + grasp_list[30:]
-        grasps = shuffled_grasp_list
-      else:
-        grasps = grasp_list
+    #if requested, randomize the first few grasps
+    if self.randomize_grasps:
+      first_grasps = grasp_list[:30]
+      random.shuffle(first_grasps)
+      shuffled_grasp_list = first_grasps + grasp_list[30:]
+      grasps = shuffled_grasp_list
+    else:
+      grasps = grasp_list
 
-      return (grasps, error_code)
-
-      #fill in the list of grasps
-      for (grasp_pose, quality, pregrasp_dist) in zip(grasp_poses, qualities, pregrasp_dists):
-        pre_grasp_joint_state = self.create_joint_trajectory(hand_joints, pregrasp_joint_angles, pregrasp_joint_efforts)
-        grasp_joint_state = self.create_joint_trajectory(hand_joints, grasp_joint_angles, grasp_joint_efforts)
-
-        #if the cluster isn't in the same frame as the graspable object reference frame,
-        #transform the grasps to be in the reference frame
-        if cluster_frame == target.reference_frame_id:
-          transformed_grasp_pose = stamp_pose(grasp_pose, cluster_frame)
-        else:
-          transformed_grasp_pose = change_pose_stamped_frame(self.pcgp.tf_listener,
-                                     stamp_pose(grasp_pose, cluster_frame),
-                                     target.reference_frame_id)
-        if self.pcgp.pregrasp_just_outside_box:
-          min_approach_distance = pregrasp_dist
-        else:
-          min_approach_distance = max(pregrasp_dist-.05, .05)
-        approach = GripperTranslation(create_vector3_stamped(hand_approach_direction, hand_frame), pregrasp_dist, min_approach_distance)
-        retreat = GripperTranslation(create_vector3_stamped([-1.*x for x in hand_approach_direction], hand_frame), pregrasp_dist, min_approach_distance)
-
-        # LT
-        grasp_list.append(Grasp(id="id", pre_grasp_posture=pre_grasp_joint_state, grasp_posture=grasp_joint_state,
-                                grasp_pose=transformed_grasp_pose, grasp_quality=quality,
-                                pre_grasp_approach=approach, post_grasp_retreat=retreat, max_contact_force=-1))
-
-      #if requested, randomize the first few grasps
-      if self.randomize_grasps:
-        first_grasps = grasp_list[:30]
-        random.shuffle(first_grasps)
-        shuffled_grasp_list = first_grasps + grasp_list[30:]
-        grasps = shuffled_grasp_list
-      else:
-        grasps = grasp_list
-
-      return (grasps, error_code)
-
-      #fill in the list of grasps
-      for (grasp_pose, quality, pregrasp_dist) in zip(grasp_poses, qualities, pregrasp_dists):
-        pre_grasp_joint_state = self.create_joint_trajectory(hand_joints, pregrasp_joint_angles, pregrasp_joint_efforts)
-        grasp_joint_state = self.create_joint_trajectory(hand_joints, grasp_joint_angles, grasp_joint_efforts)
-
-        #if the cluster isn't in the same frame as the graspable object reference frame,
-        #transform the grasps to be in the reference frame
-        if cluster_frame == target.reference_frame_id:
-          transformed_grasp_pose = stamp_pose(grasp_pose, cluster_frame)
-        else:
-          transformed_grasp_pose = change_pose_stamped_frame(self.pcgp.tf_listener,
-                                   stamp_pose(grasp_pose, cluster_frame),
-                                   target.reference_frame_id)
-        if self.pcgp.pregrasp_just_outside_box:
-          min_approach_distance = pregrasp_dist
-        else:
-          min_approach_distance = max(pregrasp_dist-.05, .05)
-        approach = GripperTranslation(create_vector3_stamped(hand_approach_direction, hand_frame), pregrasp_dist, min_approach_distance)
-        retreat = GripperTranslation(create_vector3_stamped([-1.*x for x in hand_approach_direction], hand_frame), pregrasp_dist, min_approach_distance)
-
-        # LT
-        grasp_list.append(Grasp(id="id", pre_grasp_posture=pre_grasp_joint_state, grasp_posture=grasp_joint_state,
-                              grasp_pose=transformed_grasp_pose, grasp_quality=quality,
-                              pre_grasp_approach=approach, post_grasp_retreat=retreat, max_contact_force=-1))
-
-      #if requested, randomize the first few grasps
-      if self.randomize_grasps:
-        first_grasps = grasp_list[:30]
-        random.shuffle(first_grasps)
-        shuffled_grasp_list = first_grasps + grasp_list[30:]
-        grasps = shuffled_grasp_list
-      else:
-        grasps = grasp_list
-
-      return (grasps, error_code)
+    return (grasps, error_code)
 
 
 if __name__ == '__main__':

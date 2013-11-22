@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
   household_objects_database_msgs
   manipulation_msgs
+  #uw_pr2_gripper_grasp_planner_cluster
+  moveit_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -32,8 +34,7 @@ add_message_files(
   PretouchAcoustic.msg
   Probe.msg
   ProbeTarget.msg
-  Grasp.msg
-  GraspableObject.msg
+  #Grasp.msg
 )
 
 # Generate services in the 'srv' folder
@@ -45,7 +46,7 @@ add_service_files(
   ExecutePretouch.srv
   FindPretouch.srv
   GetProbabilisticPointCloud.srv
-  GraspPlanning.srv
+  #GraspPlanning.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -54,6 +55,8 @@ generate_messages(
   object_recognition_msgs
   household_objects_database_msgs
   manipulation_msgs
+  uw_pr2_gripper_grasp_planner_cluster
+  moveit_msgs
 )
 
 ###################################

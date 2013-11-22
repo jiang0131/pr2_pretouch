@@ -5,11 +5,14 @@ from uw_pr2_gripper_grasp_planner_cluster.point_cluster_grasp_planner import Poi
 from moveit_msgs.msg import CollisionObject, AttachedCollisionObject
 from shape_msgs.msg import SolidPrimitive
 
+from uw_pr2_gripper_grasp_planner_cluster.cluster_bounding_box_finder import ProbabilisticClusterBoundingBoxFinder
+
 class ProbabilisticPointClusterGraspPlanner(PointClusterGraspPlanner):
 
   def __init__(self, tf_listener = None, tf_broadcaster = None):
     PointClusterGraspPlanner.__init__(self)
     self.draw_box = True
+    self.cbbf = ProbabilisticClusterBoundingBoxFinder(self.tf_listener, self.tf_broadcaster)
 
   ##draw the fitted box model of the object, placed at identy pose (4x4 scipy matrix) in frame (defaults to the object frame)
   def draw_bounding_box(self, ranges, pause_after_broadcast = 0, name = 'deterministic_object_box', color=[0,0.5,1]):
@@ -27,7 +30,7 @@ class ProbabilisticPointClusterGraspPlanner(PointClusterGraspPlanner):
                                               id = 0, color = color, duration = 100, opaque = .7)
 
   ##initialization for planning grasps 
-  def init_probabilistic_cluster_grasper(self, cluster, probabilities=[], use_probability=True):
+  def init_cluster_grasper(self, cluster, probabilities=[], use_probability=True):
 
     self.cluster_frame = cluster.header.frame_id
 
@@ -58,12 +61,13 @@ class ProbabilisticPointClusterGraspPlanner(PointClusterGraspPlanner):
         print 'deterministic_object_box'
 
     # MoveIt Stuff: CollisionObject
+    '''
     print "self.object_bounding_box_dims=", self.object_bounding_box_dims
     print "self.object_bounding_box=", self.object_bounding_box
     print "self.object_to_base_frame.shape=", self.object_to_base_frame.shape
     print "self.object_to_base_frame=", self.object_to_base_frame
     print "self.object_to_cluster_frame=", self.object_to_cluster_frame
-
+    '''
     # Add the bounding box as a CollisionObject
     co = CollisionObject()
     co.header.stamp = rospy.get_rostime()

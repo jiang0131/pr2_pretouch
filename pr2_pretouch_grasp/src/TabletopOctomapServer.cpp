@@ -329,7 +329,7 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
 
   resp.result = 1;
 
-  publishAll(req.pose_stamped.header.stamp);
+  publishAllProbMap(req.pose_stamped.header.stamp);
 
   return true;
 }

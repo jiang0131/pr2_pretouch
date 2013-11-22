@@ -8,10 +8,7 @@ from uw_pr2_gripper_grasp_planner_cluster.convert_functions import *
 import uw_pr2_gripper_grasp_planner_cluster.draw_functions as draw_functions
 from pr2_pretouch_msgs.msg import GraspableObject, Grasp, Probe
 from tf.transformations import quaternion_from_euler, rotation_matrix, translation_matrix
-#from kinematics_msgs.srv import GetKinematicSolverInfo, GetKinematicSolverInfoRequest
-#from kinematics_msgs.srv import GetPositionIK, GetPositionIKRequest
-#from kinematics_msgs.srv import GetConstraintAwarePositionIK, GetConstraintAwarePositionIKRequest
-#from joint_states_listener.srv import ReturnJointStates
+from moveit_msgs.srv import GetPositionIKRequest, GetPositionIK
 
 class PretouchComputer:
   '''
@@ -50,10 +47,10 @@ class PretouchComputer:
     self.K = 10
 
     #what's the threshold of the mean probability from the above K points?    
-    self.confident_prob = 0.8  
+    self.prob_threshold = 0.9
 
     #How many candidates do we need before actually attempt to grasp? (defalt=5)
-    self.num_grasp_candidates_required = 5 
+    self.num_grasp_candidates_required = 1
 
   #initialize some member variables data
   #target: tabletop_octomap/GraspableObject
@@ -71,6 +68,8 @@ class PretouchComputer:
     self.cluster = target.cluster
     self.probabilities = target.probabilities 
     self.num_grasp_candidates_required = num_grasp_candidates_required
+    self.grasp_candidates = []
+    self.ready_to_grasp = False
 
   '''
   def transformToTorso(self, pose)
@@ -87,15 +86,21 @@ class PretouchComputer:
   def find_pretouch(self):
     for i in range(len(self.grasps)):
       print ' '
-      print 'COMPUTE THE GRASP #' , i
-      (r_probe, l_probe, success) = self.find_pretouch_for_one_grasp(self.grasps[i])
-      if success:
-        print "!!!!!!!!!!!!!!!!!!!!!!!! GOOD !!!!!!!!!!!!!!!!!!!!!!!!!"
-        #return (r_probe, l_probe, self.grasps[i])
-        return (r_probe, l_probe, self.grasp_candidate, self.ready_to_grasp)
-    rospy.loginfo('No good pretouch is found, return the original best grasp')
-    #return (r_probe, l_probe, self.grasps[0]) 
-    return (r_probe, l_probe, self.grasp_candidate, self.ready_to_grasp) 
+      print 'COMPUTE FOR GRASP #' , i
+      (joint_position, have_solution) = self.getConstraintAwareIK(self.grasps[i].grasp_pose.pose)
+      if have_solution:
+        (r_probe, l_probe, success) = self.find_pretouch_for_one_grasp(self.grasps[i])
+        if success:
+          if self.ready_to_grasp:
+            print "Having enough grasp candidates (Ready to Grasp)"
+            return (r_probe, l_probe, self.grasps[0], self.grasp_candidates, self.ready_to_grasp)
+          else:
+            print "Pretouch is required"
+            return (r_probe, l_probe, self.grasps[i], self.grasp_candidates, self.ready_to_grasp)
+      else:
+        print "    This grasp pose is not feasible"
+    print "We don't have enough grasp candidates, and no valid pretouch can be performed..."
+    return (r_probe, l_probe, None, self.grasp_candidates, self.ready_to_grasp) 
 
 
   def eval_grasp_improvement(self, grasp_pose):
@@ -139,7 +144,7 @@ class PretouchComputer:
     Find the two contact points in the graspable object
     '''
     grasp_pose = grasp.grasp_pose
-    pregrasp_pose = grasp.pre_grasp_pose
+    #pregrasp_pose = grasp.pre_grasp_pose
 
     #self.grasp_pose = grasps[0].grasp_pose
 
@@ -152,7 +157,7 @@ class PretouchComputer:
     #transform the cluster to reference frame (a 4xN matrix)
     (cluster_mat, cluster_to_reference_transform) = transform_point_cloud(self.tf_listener, self.cluster, self.reference_frame_id)
   
-    pose_mat = pose_to_mat(grasp_pose)
+    pose_mat = pose_to_mat(grasp_pose.pose)
     #transform the grasp_pose to r_finger (4x4 matrix)
     r_finger_mat = pose_mat * self.gripper_to_r_finger
     r_finger_point = r_finger_mat[0:3, 3].T
@@ -273,15 +278,11 @@ class PretouchComputer:
     print l_quat
     """
     
-    self.prob_threshold = 0.90
-
-    r_pretouch_required = False
     r_pretouch_found = False
     r_probe.required = False
     # r_finger area is uncertain
     print 'r_probe.probability=', r_probe.probability
     if r_probe.probability < self.prob_threshold:
-      r_pretouch_required = True
       r_probe.required = True
       (pretouch_pose, pretouch_joint_states, success) = self.adjustPretouchPose(r_probe.pretouch_pose)
       if (success):
@@ -291,12 +292,10 @@ class PretouchComputer:
       else:
         print 'no IK solution for R'
 
-    l_pretouch_required = False
     l_pretouch_found = False
     l_probe.required = False
     print 'l_probe.probability=', l_probe.probability
     if l_probe.probability < self.prob_threshold:
-      l_pretouch_required = True
       l_probe.required = True
       (pretouch_pose, pretouch_joint_states, success) = self.adjustPretouchPose(l_probe.pretouch_pose)
       if (success):
@@ -306,46 +305,22 @@ class PretouchComputer:
       else:
         print 'no IK solution for L'
 
-    '''
-    if ( ((r_pretouch_required*r_pretouch_found) or ((not r_pretouch_required)*(not r_pretouch_found))) \
-       and ((l_pretouch_required*l_pretouch_found) or ((not l_pretouch_required)*(not l_pretouch_found))) ):
-    '''
-    #all the required pretouch pose were found
-    #IK existed for grasp pose?
-    #(grasp_joint_states, success1) = self.getIK(grasp.grasp_pose)
-    #(pregrasp_joint_states, success2) = self.getIK(grasp.pre_grasp_pose)
-    success1 = True
-    success2 = True
-    if success1 and success2: 
-      #print 'Found IK solution for the Grasp: ', grasp_joint_states
-      #print 'Found IK solution for the Pre-Grasp: ', pregrasp_joint_states
-
-      #if pretouch is not required for both sides, that's a good grasp already
-      #else if either side is required pretouch and found IK solution, consider it an informative probe
-      if (not r_pretouch_required) and (not l_pretouch_required):
-        print 'Good Grasp Already, test if it is feasible.....'
-        (joint_position, have_solution) = self.testGraspFeasibility(grasp_pose)
-        if have_solution:
-          print 'Good to go'
-          self.grasp_candidates.append(grasp)
-          print 'Good to go, We now have ', len(grasp_candidates), ' Grasp Candidates'
-          if len(grasp_candidates) > 5:
-            self.ready_to_grasp = True
-            return (r_probe, l_probe, True)
-          else:
-            print 'We need more Grasp Candidates to be safe, continue evaluating other grasps'
-            return (r_probe, l_probe, False) 
-        else:
-          print 'The Grasp is not feasible, continue evaluating other grasps'
-        return (r_probe, l_probe, False) 
-      elif r_pretouch_required*r_pretouch_found or l_pretouch_required*l_pretouch_found:
-        print 'Found Useful Pre-Touch'
+    #if pretouch is not required for both sides, that's a good grasp already
+    #else if either side is required pretouch and found IK solution, consider it an informative probe
+    if (not r_probe.required) and (not l_probe.required):
+      # Check pregrasp pose?
+      self.grasp_candidates.append(grasp)
+      print 'Confident Grasp: We now have ', len(self.grasp_candidates), ' Grasp Candidates'
+      if len(self.grasp_candidates) >= self.num_grasp_candidates_required:
+        self.ready_to_grasp = True
         return (r_probe, l_probe, True)
       else:
-        print 'Pretouch is Required, But No Good Pre-Touch'
-        return (r_probe, l_probe, False)
+        print 'We need more Grasp Candidates to be safe, continue evaluating other grasps'
+        return (r_probe, l_probe, False) 
+    elif r_probe.required*r_pretouch_found or l_probe.required*l_pretouch_found:
+      return (r_probe, l_probe, True)
     else:
-      print 'No IK solution for the Grasp / Pre-Grasp'
+      print 'Pretouch is Required, But No Good Pre-Touch'
       return (r_probe, l_probe, False)
 
 
@@ -353,7 +328,7 @@ class PretouchComputer:
     # a grasp pose w.r.t self.reference_frame_id
     # select one here...
     # (joint_position, have_solution) = self.getIK(pretouch_wrist_roll_pose)
-    (joint_position, have_solution) = self.getConstraintAwareIK(grasp_pose)
+    (joint_position, have_solution) = self.getConstraintAwareIK(grasp_pose.pose)
     return (joint_position, have_solution)
 
 
@@ -388,6 +363,33 @@ class PretouchComputer:
 
   def getConstraintAwareIK(self, pose):
 
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = self.reference_frame_id
+    pose_stamped.pose = pose
+    #transform pose_stamped (why?)
+    #pose_stamped = change_pose_stamped_frame(self.tf_listener, pose_stamped, 'torso_lift_link')
+
+    get_ik_req = GetPositionIKRequest()
+    get_ik_req.ik_request.group_name = "right_arm"
+    #get_ik_req.ik_request.robot_state = #moveit_msgs/RobotState
+    get_ik_req.ik_request.avoid_collisions = False
+    get_ik_req.ik_request.ik_link_name = "r_wrist_roll_link"
+    get_ik_req.ik_request.pose_stamped = pose_stamped
+    get_ik_req.ik_request.timeout = rospy.Duration(5.0)
+    get_ik_req.ik_request.attempts = 10
+    
+    try:
+      ik_solver_client = rospy.ServiceProxy('compute_ik', GetPositionIK)
+      resp = ik_solver_client(get_ik_req)
+    except rospy.ServiceException, e:
+      print 'Cannot call ik solver service'%e
+
+    if resp.error_code.val == resp.error_code.SUCCESS:
+      return (resp.solution.joint_state.position, True)
+    else:
+      return ([], False)
+
+    '''
     pose_stamped = PoseStamped()
     pose_stamped.header.frame_id = self.reference_frame_id
     pose_stamped.pose = pose
@@ -426,7 +428,7 @@ class PretouchComputer:
     except rospy.ServiceException, e:
       print "Service call failed: %s"%e
       return ([], False)
-
+    '''
 
 
   def getIK(self, pose):
