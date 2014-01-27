@@ -1,0 +1,36 @@
+<launch>
+  <arg name="use_machine" default="false"/>
+  <arg name="machine" default="c2"/>
+  <group if="$(arg use_machine)">
+    <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+    <node name="pr2_gripper_probabilistic_grasp_planner_cluster" pkg="pr2_pretouch_grasp" 
+      type="probabilistic_point_cluster_grasp_planner_server.py" respawn="false" output="screen" machine="$(arg machine)">
+      <rosparam command="load" file="$(find uw_pr2_gripper_grasp_planner_cluster)/config/pr2_gripper_model.yaml" />
+      <rosparam command="load" file="$(find uw_pr2_gripper_grasp_planner_cluster)/config/pr2_hand_descriptions.yaml" />
+      <param name="z_up_frame" value="/base_link"/>
+      <param name="backoff_depth_steps" value="8"/>
+    </node>  
+  </group>
+  <group unless="$(arg use_machine)">
+    <node name="pr2_gripper_grasp_planner_cluster" pkg="pr2_pretouch_grasp" 
+      type="probabilistic_point_cluster_grasp_planner_server.py" respawn="false" output="screen">
+      <rosparam command="load" file="$(find uw_pr2_gripper_grasp_planner_cluster)/config/pr2_gripper_model.yaml" />
+      <rosparam command="load" file="$(find uw_pr2_gripper_grasp_planner_cluster)/config/pr2_hand_descriptions.yaml" />
+      <param name="z_up_frame" value="/base_link"/>
+      <param name="backoff_depth_steps" value="8"/>
+    </node>  
+  </group>
+
+  <!-- only need this when used stanalone -->
+  <!--
+  <include file="$(find tabletop_octomap)/launch/base_link_static_tf.launch"/>
+  -->
+
+  <!-- Broadcast a static tf frame for the pretouch sensor frame
+  <include file="$(find tabletop_octomap)/launch/pretouch_frame_static_tf.launch"/>
+  -->
+
+  <node pkg="tf" type="static_transform_publisher" name="pretouch_frame_static_tf" args="0.19 0.049 0 0 0 0 /r_wrist_roll_link /r_gripper_l_finger_tip_pretouch_frame 100" />
+
+
+</launch>

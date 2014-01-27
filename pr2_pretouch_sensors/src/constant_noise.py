@@ -11,7 +11,7 @@ class Noise():
     #noise_proxy = rospy.ServiceProxy('reset_adaptive_noise', Empty)
     #srv = EmptyRequest()
     #resp = noise_proxy(srv)
-    pygame.init()
+    pygame.mixer.init()
     pygame.mixer.music.set_volume(init_volume)
     pygame.mixer.music.load(filename)
 

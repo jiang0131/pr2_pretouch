@@ -1,0 +1,9 @@
+uw_pr2_gripper_grasp_planner_cluster/GraspableObject target
+moveit_msgs/Grasp[] grasps
+int32 num_grasp_candidates_required
+---
+Probe r_probe
+Probe l_probe
+moveit_msgs/Grasp[] grasp_candidates
+bool ready_to_grasp
+

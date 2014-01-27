@@ -1,0 +1,8 @@
+string reference_frame_id
+geometry_msgs/Pose touch_pose
+geometry_msgs/Pose pretouch_pose
+sensor_msgs/JointState pretouch_joint_states
+geometry_msgs/Vector3 direction
+float32 setback_dist
+float32 probability
+bool required

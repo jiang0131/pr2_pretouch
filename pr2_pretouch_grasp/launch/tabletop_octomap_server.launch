@@ -1,0 +1,66 @@
+<!-- 
+  Example launch file for octomap_server mapping: 
+  Listens to incoming PointCloud2 data and incrementally builds an octomap. 
+  The data is sent out in different representations. 
+-->
+<launch>
+
+  <arg name="tabletop_segmentation_convert_to_base_link" default="true" />
+
+	<node pkg="pr2_pretouch_grasp" type="tabletop_octomap_server_node" name="tabletop_octomap_server" output="screen">
+
+    <param name="resolution" value="0.005" />
+		<param name="sim_table_resolution" value="0.005" />
+	
+    <!-- camera sensor frame -->
+    <param name="camera_frame_id" type="string" value="/head_mount_kinect_rgb_optical_frame" />
+
+		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <!-- standalone camera
+		<param name="frame_id" type="string" value="/camera_rgb_optical_frame" />
+    -->
+		<param name="frame_id" type="string" value="/base_link" />
+		
+		<!-- maximum range to integrate (speedup!) -->
+		<param name="sensor_model/max_range" value="2.0" />
+		
+		<!-- latch topic? -->
+		<param name="latch" value="true" />
+
+		<!-- use probability map? -->
+		<param name="use_prob_map" value="false" />
+
+		<!-- data source to integrate (PointCloud2) -->
+    <!-- openni_launch node
+		<remap from="cloud_in" to="/camera/depth_registered/points" />
+    -->
+		<remap from="cloud_in" to="/head_mount_kinect/depth_registered/points" />
+
+    <remap from="height_map" to="true" />
+	
+    <!-- Estimator parameter -->
+    <param name="decay_rate_occlusion" value="2.0" />
+    <param name="decay_rate_transparency" value="4.0" />
+
+    <!-- Kinect beam sensor model (p value) -->
+    <param name="sensor_model/hit" value="0.9" />
+    <param name="sensor_model/miss" value="0.2" />
+
+    <!-- Seashell Pretouch sensor model (p value) -->
+    <param name="pretouch_sensor_model/hit" value="0.9" />
+    <param name="pretouch_sensor_model/miss" value="0.4" />
+
+    <!-- all clouds converted to and processed in base link frame -->
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="processing_frame" value="base_link" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="up_direction" value="1.0" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_min" value="0.35" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="z_filter_max" value="1.0" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_min" value="-1.2" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="y_filter_max" value="1.2" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_min" value="0.3" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="x_filter_max" value="1.0" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_min" value="-0.5" />
+    <param if="$(arg tabletop_segmentation_convert_to_base_link)" name="table_z_filter_max" value="-0.01" />
+
+	</node>
+</launch>

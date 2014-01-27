@@ -1,0 +1,8 @@
+geometry_msgs/PoseStamped pose_stamped
+float64 decay_rate
+bool hit
+---
+#response constants
+uint32 SUCCEESS=1
+uint32 FAILED=0
+uint32 result
