@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
   household_objects_database_msgs
   manipulation_msgs
-  #uw_pr2_gripper_grasp_planner_cluster
+  uw_pr2_gripper_grasp_planner_cluster
   moveit_msgs
 )
 

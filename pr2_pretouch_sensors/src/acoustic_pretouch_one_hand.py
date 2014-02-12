@@ -3,6 +3,7 @@
 # Liang-Ting Jiang 02/06/2013
 import rospy
 import numpy as np
+from matplotlib.pyplot import figure, plot, title, show
 import math
 from matplotlib import mlab
 import cookb_signalsmooth
@@ -102,8 +103,6 @@ class MicSensor:
                              window=mlab.window_hanning, noverlap=self.N_OVERLAP, sides='onesided')
     (Pxx_2, freq) = mlab.psd(self.signal_2, NFFT=self.NSAMPLES, Fs=self.RATE, detrend=mlab.detrend_mean, 
                              window=mlab.window_hanning, noverlap=self.N_OVERLAP, sides='onesided')
-    print "Pxx_1 = ", Pxx_1[0]
-    print "Pxx_2 = ", Pxx_2[0]
     # Taking 10*log10()  Convert to dB and compute total energy
     self.amp_sum_in = 0.0
     self.amp_dum_out = 0.0

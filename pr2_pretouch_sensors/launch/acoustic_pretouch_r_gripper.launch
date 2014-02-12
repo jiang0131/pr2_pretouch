@@ -1,6 +1,6 @@
 <launch>
 
-  <node name="sound_publisher_right" pkg="pr2_pretouch_sensors" type="pub_sound.py">
+  <node name="sound_publisher_right" pkg="pr2_pretouch_sensors" type="pub_sound.py" output="screen">
     <param name="side" value="right" />
   </node>
 
