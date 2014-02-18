@@ -104,22 +104,17 @@ class MicSensor:
     (Pxx_2, freq) = mlab.psd(self.signal_2, NFFT=self.NSAMPLES, Fs=self.RATE, detrend=mlab.detrend_mean, 
                              window=mlab.window_hanning, noverlap=self.N_OVERLAP, sides='onesided')
     # Taking 10*log10()  Convert to dB and compute total energy
-    self.amp_sum_in = 0.0
-    self.amp_dum_out = 0.0
-    
-    for x in range(len(Pxx_1)):
-      self.amp_sum_1 += Pxx_1[x]  
-      Pxx_1[x] = 10*math.log(Pxx_1[x], 10)
-    for x in range(len(Pxx_2)):
-      self.amp_sum_2 += Pxx_2[x]
-      Pxx_2[x] = 10*math.log(Pxx_2[x], 10)
-    
+    #self.amp_sum_in = 0.0
+    #self.amp_dum_out = 0.0
+    Pxx_1 = np.array([10*math.log(p,10) for p in Pxx_1])
+    Pxx_2 = np.array([10*math.log(p,10) for p in Pxx_2])    
+
     #amp_sum_sub = abs(amp_sum_out - amp_sum_in)
     #energy = amp_sum_sub #which energy source to use?
-    self.energy = self.amp_sum_1
+    #self.energy = self.amp_sum_1
     #print 'Pxx_out shape=' + str(Pxx_1.shape)
     # Smooth in Frequency Domain (Moving Average in time domain)
-    temp = np.reshape(Pxx_1-Pxx_2, (self.NSAMPLES/2 + 1,))
+    temp = np.reshape(Pxx_2-Pxx_1, (self.NSAMPLES/2 + 1,))
     sub_smoothed = cookb_signalsmooth.smooth(temp, window_len=61, window='flat'); #61 or 51
 
     #compute the SNR

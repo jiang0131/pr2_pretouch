@@ -33,7 +33,7 @@
 
 
 # MCU name
-MCU = atmega328p
+MCU = atmega168p
 
 # Processor frequency.
 #     This will define a symbol, F_CPU, in all source code files equal to the 
@@ -58,7 +58,8 @@ F_CPU = 16000000
 FORMAT = ihex
 
 # Target file name (without extension).
-TARGET = finger_1
+#TARGET = finger_10bit
+TARGET = finger
 
 
 

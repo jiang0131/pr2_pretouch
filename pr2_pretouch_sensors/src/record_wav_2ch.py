@@ -55,10 +55,10 @@ def callback(msg):
     #print "data_1=", data_1
     #print "data_2=", data_2
     for i in data_1:
-      packed_value = struct.pack('b', i)
+      packed_value = struct.pack('B', i)
       signal_1.append(packed_value)
     for i in data_2:
-      packed_value = struct.pack('b', i)
+      packed_value = struct.pack('B', i)
       signal_2.append(packed_value)
       #print hex(ord(packed_value))
     value_str_1 = ''.join(signal_1)
