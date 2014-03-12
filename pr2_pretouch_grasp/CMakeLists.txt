@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   tf
   visualization_msgs
+  rosconsole
 )
 
 ## System dependencies are found with CMake's conventions

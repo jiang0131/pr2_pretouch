@@ -1044,8 +1044,8 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 			boundary_indices->indices.push_back((int)i);
 		}
 	}
-	std::cout << "size of object pointcloud: " << object_pc->size() << std::endl;
-	std::cout << "size of object boundary: " << boundary_indices->indices.size() << std::endl;
+	//std::cout << "size of object pointcloud: " << object_pc->size() << std::endl;
+	//std::cout << "size of object boundary: " << boundary_indices->indices.size() << std::endl;
 
 	//save the boundary pointcloud
   PCLPointCloud::Ptr boundary_pc (new PCLPointCloud);

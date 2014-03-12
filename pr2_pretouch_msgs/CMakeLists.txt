@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   object_recognition_msgs
   household_objects_database_msgs
   manipulation_msgs
-  uw_pr2_gripper_grasp_planner_cluster
+  #uw_pr2_gripper_grasp_planner_cluster
   moveit_msgs
 )
 
@@ -55,7 +55,7 @@ generate_messages(
   object_recognition_msgs
   household_objects_database_msgs
   manipulation_msgs
-  uw_pr2_gripper_grasp_planner_cluster
+  #uw_pr2_gripper_grasp_planner_cluster
   moveit_msgs
 )
 
@@ -69,7 +69,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS object_recognition_msgs
+  CATKIN_DEPENDS object_recognition_msgs moveit_msgs
 )
 
 ###########

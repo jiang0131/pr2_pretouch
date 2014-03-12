@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import pyaudio
 import wave
 import struct
@@ -9,15 +10,17 @@ CHANNELS = 2
 RATE = 44100 #sample rate
 RECORD_SECONDS = int(raw_input('How many seconds to analyze? ....... '))
 
+
+device_id = helper.find_audio_interface_device(name='Lexicon Omega: USB Audio (hw:1,0)')
+
 p = pyaudio.PyAudio()
-print p.get_device_info_by_index(4)
-p.is_format_supported(RATE, input_device=4, input_channels=CHANNELS, input_format=FORMAT)
+p.is_format_supported(RATE, input_device=device_id, input_channels=CHANNELS, input_format=FORMAT)
 
 stream = p.open(format=FORMAT,
                 channels=CHANNELS,
                 rate=RATE,
                 input=True,
-                input_device_index = 4,               
+                input_device_index = device_id,               
                 frames_per_buffer=CHUNK) #buffer
 
 print("* recording")
@@ -26,10 +29,10 @@ data_1 = []
 data_2 = []
 n = p.get_sample_size(FORMAT)
 
-for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+for i in range(int(RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
-    data_1.extend([data[i:i+n] for i in range(0,len(data),2*n)])
-    data_2.extend([data[i+n:i+2*n] for i in range(0,len(data),2*n)])
+    data_1.extend([data[i:i+n] for i in range(len(data),2*n)])
+    data_2.extend([data[i+n:i+2*n] for i in range(len(data),2*n)])
 
 print("* done recording")
 
