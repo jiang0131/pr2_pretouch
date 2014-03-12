@@ -53,11 +53,10 @@ k = kalman.Kalman(ndim, Sigma_x, R)
 mu_init = np.array([2000])
 
 ####################################################
-########### Getting Sound ##########################
+##### Initialize PyAudio Input Stream ##############
 ####################################################
 # Find the actual device ID used by PyAudio
 device_id = helper.find_audio_device(name='Lexicon Omega: USB Audio (hw:1,0)')
-print device_id
 # Initialize Audio Input Streaming
 p = pyaudio.PyAudio()
 stream = p.open(format = FORMAT,
@@ -73,7 +72,7 @@ stream = p.open(format = FORMAT,
 while not rospy.is_shutdown():
     
     ####################################################
-    ########### Getting Spectrum #######################
+    ########### Getting Sound Data #####################
     ####################################################
     n_reads = int(RATE * RECORD_SECONDS / CHUNK)
     data = ''.join([stream.read(CHUNK) for i in range(n_reads)])
