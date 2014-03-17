@@ -142,10 +142,10 @@ def plot_from_rawdata(data1, data2, rate):
     '''
     (Pxx_in, freq) = mlab.psd(data1, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
     (Pxx_out, freq) = mlab.psd(data2, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
-    Pxx_in = np.array([10*math.log(p,10) if p != 0 else p for p in Pxx_in])
-    Pxx_out = np.array([10*math.log(p,10) if p != 0 else p for p in Pxx_out])
+    Pxx_in = log(Pxx_in)
+    Pxx_out = log(Pxx_out)
     Pxx_diff = Pxx_out - Pxx_in
-    Pxx_diff_smoothed = cookb_signalsmooth.smooth(Pxx_diff, window_len=51, window='flat'); 
+    Pxx_diff_smoothed = cookb_signalsmooth.smooth(Pxx_diff.ravel(), window_len=51, window='flat'); 
     plot_graph(freq, Pxx_in, Pxx_out, Pxx_diff, Pxx_diff_smoothed)    
 
 

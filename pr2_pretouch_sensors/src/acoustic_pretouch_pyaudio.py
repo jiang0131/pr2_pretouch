@@ -57,6 +57,7 @@ mu_init = np.array([2000])
 ####################################################
 # Find the actual device ID used by PyAudio
 device_id = helper.find_audio_device(name='Lexicon Omega: USB Audio (hw:1,0)')
+print device_id
 # Initialize Audio Input Streaming
 p = pyaudio.PyAudio()
 stream = p.open(format = FORMAT,
@@ -88,8 +89,7 @@ while not rospy.is_shutdown():
     ####################################################
     ########### Getting Spectrum #######################
     ####################################################
-    freq, Pxx_in, Pxx_out, Pxx_diff, Pxx_diff_smoothed = 
-                            helper.get_spectrums(signal_in, signal_out, RATE)
+    freq, Pxx_in, Pxx_out, Pxx_diff, Pxx_diff_smoothed = helper.get_spectrums(signal_in, signal_out, RATE)
 
     ####################################################
     ########### Peak Finding  ##########################
