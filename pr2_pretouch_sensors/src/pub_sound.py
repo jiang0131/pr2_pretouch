@@ -32,9 +32,12 @@ def rawPressureCallback(msg):
     sr = SoundRaw()
     sr.header.seq = seq
     sr.header.stamp = rospy.Time.now()
+
     sr.data = msg.data[4:-1]
+    # convert to unsigned 8-bit integer (2014-02-12)
+    sr.data = [d << 0 if d>=0 else (256+d)<<0 for d in msg.data[4:-1]]
+
     pub.publish(sr)
-    #print msg.data[4:]
 
 sub = rospy.Subscriber(sub_topic, ByteMultiArray, rawPressureCallback)
 rospy.spin()
