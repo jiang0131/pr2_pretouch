@@ -1,3 +1,7 @@
-microcontroller -- Firmware of ATMega328p for Seashell Effect Pretouch Sensors
-picoblaze       -- Firmware of PicoBlaze soft-processor running on the FPGA on the MCB of PR2 grippers
-wg006_gripper   -- Firmware of the FPGA on the MCB of PR2 grippers which supports PicoBlaze (PicoBlaze supported >2.0)
+- seashell_effect     -- Firmware of Seashell Effect Pretouch Sensor
+    + microcontroller     -- ATmega168/328 fimware
+    + picoblaze           -- PicoBlaze firmware
+- optical_ir          -- Firmware of Optical IR Pretouch Sensor
+    + microcontroller     -- ATmega168/328 fimware
+    + picoblaze           -- PicoBlaze firmware
+- wg006_gripper       -- Firmware of the FPGA on the MCB of PR2 grippers which supports PicoBlaze (PicoBlaze supported >2.0)
