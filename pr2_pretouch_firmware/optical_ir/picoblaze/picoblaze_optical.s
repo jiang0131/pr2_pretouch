@@ -238,7 +238,6 @@ main_loop:
 		output s0, PRESSURE_INDEX_LOW_REG
 		output s0, PRESSURE_INDEX_HIGH_REG	
 
-	
 	; The first value in pressure data is 32bit timestamp
 	; The timestamp is automically copied from 32bit hardware 
 	; timer that increments every 1us
@@ -257,45 +256,37 @@ main_loop:
 			input  s0, PRESSURE_TIMESTAMP_REG_3
 			output s0, PRESSURE_DATA_REG
 
-	; How many times we want to read the sensors for each 512 bytes buffer?
-	; timestamp uses 4 bytes, so 512-4 = 508 bytes remaining
-	; (254=0xfe) * 1 channel * 2 cycles = 508
+    ; Flush the data buffer after every 4 sensor reads (4 channels)
+	; (4=0x4) * 1 channel = 4
 
-	;load s2, 2;  2 cycles
-	load s2, 1;  2 cycles
+	load s1, 4;  4 cycles
 	read_sensor_multiple_times:
 
-		;load s1, fe ; (254=0xfe)
-		load s1, 4 ; (4=0x4)
-		in_read_sensor_multiple_times:
+        wait_for_timerA_overflow_loop:
+            input s0, TIMER_A_OVERFLOW_REG
+            test s0, TIMER_OVERFLOW_FLAG
+            jump Z, wait_for_timerA_overflow_loop
+        ; clear overflow flag
+            load s0, TIMER_OVERFLOW_FLAG
+            output s0, TIMER_A_OVERFLOW_REG
 
-			wait_for_timerA_overflow_loop:
-				input s0, TIMER_A_OVERFLOW_REG
-				test s0, TIMER_OVERFLOW_FLAG
-				jump Z, wait_for_timerA_overflow_loop
-			; clear overflow flag
-				load s0, TIMER_OVERFLOW_FLAG
-				output s0, TIMER_A_OVERFLOW_REG
+        ; Read first sensor (IR receiver)
+            ; assert nChipSel1
+                load s0, SPI_ASSERT_CHIPSEL_1_FLAG
+                output s0, SPI_CTRL_REG
+            ; use sub-routine to preform actual read of data
+            ; the sub-routine will also de-assert chipselect before returning
+                call read_sensor
 
-			; Read first pressure sensor
-				; assert nChipSel1
-					load s0, SPI_ASSERT_CHIPSEL_1_FLAG
-					output s0, SPI_CTRL_REG
-				; use sub-routine to preform actual read of data
-				; the sub-routine will also de-assert chipselect before returning
-					call read_sensor
-
-			; Read second pressure sensor
-				; assert nChipSel2
-					;load s0, SPI_ASSERT_CHIPSEL_2_FLAG
-					;output s0, SPI_CTRL_REG
-				; use sub-routine to preform actual read of data
-				; the sub-routine will also de-assert chipselect before returning
+        ; No need to read from the IR emitter
+            ; assert nChipSel2
+                ;load s0, SPI_ASSERT_CHIPSEL_2_FLAG
+                ;output s0, SPI_CTRL_REG
+            ; use sub-routine to preform actual read of data
+            ; the sub-routine will also de-assert chipselect before returning
 					;call read_sensor
 
-			sub s1, 1
-			jump NZ, in_read_sensor_multiple_times
-		sub s2, 1
+	    sub s1, 1
 		jump NZ, read_sensor_multiple_times
 	
 	  ; New pressure data is ready, all we need to do is flip pressure buffer
@@ -308,11 +299,8 @@ main_loop:
 			load s0, PRESSURE_READY_FLAG
 			output s0, PRESSURE_CTRL_REG
 
-
 	; MAIN_LOOP END
 	jump main_loop
-
-
 
 
 ;**********************************************************************************
@@ -337,15 +325,13 @@ read_sensor:
 	
 	;  wait for ADC conversion, ADCH->SPDR...
 		;load s0, DELAY_2US_COUNT
-		load s0, DELAY_40US_COUNT ;(1us is too short in theory, but it works?)
+		load s0, DELAY_40US_COUNT 
 		call delay_us
-		;load s0, DELAY_1US_COUNT
-		;call delay_us
 
 	; data transfer:  
 	;   read 1bytes of data from pressure sensor into buffer
 	;   assume pressure index pointer is already pointing to proper place
-		load s0, 0   ; send device a 0 (doesn't really matter what we send)
+		load s0, s1   ; send the current s1 value to the slave (4-3-2-1 cycle)
 		call spi_xfer_8
 	; put recieved data (s0) into pressure buffer
 		output s0, PRESSURE_DATA_REG
