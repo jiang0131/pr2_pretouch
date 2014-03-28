@@ -3,7 +3,7 @@
   <name>pr2_pretouch_sensor_optical</name>
   <version>0.1.0</version>
   <description>The pr2_pretouch_sensor_optical package</description>
-  <author email="jianglt@uw.edu">Liang-Ting Jiang/author>
+  <author email="jianglt@uw.edu">Liang-Ting Jiang</author>
   <maintainer email="jianglt@uw.edu">Liang-Ting Jiang</maintainer>
   <license>BSD</license>
   <url type="repository">https://github.com/jiang0131/pr2_pretouch_sensor_optical</url> 
