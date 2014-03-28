@@ -47,10 +47,10 @@ MCU = atmega168p
 #         F_CPU =  3686400
 #         F_CPU =  4000000
 #         F_CPU =  7372800
-#         F_CPU =  8000000
+          F_CPU =  8000000
 #         F_CPU = 11059200
 #         F_CPU = 14745600
-#F_CPU = 16000000
+#         F_CPU = 16000000
 #         F_CPU = 18432000
 #         F_CPU = 20000000
 
@@ -58,7 +58,7 @@ MCU = atmega168p
 FORMAT = ihex
 
 # Target file name (without extension).
-TARGET = finger
+TARGET = finger_optical
 
 
 
