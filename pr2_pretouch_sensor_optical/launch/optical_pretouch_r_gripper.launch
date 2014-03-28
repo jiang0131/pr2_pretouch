@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="optical_pretouch_right" pkg="pr2_pretouch_sensor_optical" type="pub_optical.py" output="screen">
+    <param name="side" value="right" />
+  </node>
+
+</launch>

@@ -1,2 +1,13 @@
 *.pyc
 *.swp
+*.hex
+*.eep
+*.elf
+*.o
+*.sym
+*.lss
+*.lst
+*.map
+*.wav
+*.pickle
+

@@ -1,0 +1,5 @@
+<launch>
+  <node name="sound_publisher_left" pkg="pr2_pretouch_sensor_seashell" type="pub_sound.py">
+    <param name="side" value="left" />
+  </node>
+</launch>

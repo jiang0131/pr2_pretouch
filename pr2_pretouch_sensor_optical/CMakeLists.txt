@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(pr2_pretouch_sensors)
+project(pr2_pretouch_sensor_optical)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  pr2_pretouch_msgs
+  message_generation
   rospy
   std_msgs
 )
@@ -24,11 +24,10 @@ find_package(catkin REQUIRED COMPONENTS
 #######################################
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  OpticalBeams.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -38,10 +37,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   pr2_pretouch_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -54,8 +53,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES pr2_pretouch_sensors
-#  CATKIN_DEPENDS pr2_pretouch_msgs rospy std_msgs
+#  LIBRARIES pr2_pretouch_sensor_optical
+   CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -71,19 +70,19 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(pr2_pretouch_sensors
-#   src/${PROJECT_NAME}/pr2_pretouch_sensors.cpp
+# add_library(pr2_pretouch_sensor_optical
+#   src/${PROJECT_NAME}/pr2_pretouch_sensor_optical.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(pr2_pretouch_sensors_node src/pr2_pretouch_sensors_node.cpp)
+# add_executable(pr2_pretouch_sensor_optical_node src/pr2_pretouch_sensor_optical_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(pr2_pretouch_sensors_node pr2_pretouch_sensors_generate_messages_cpp)
+# add_dependencies(pr2_pretouch_sensor_optical_node pr2_pretouch_sensor_optical_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(pr2_pretouch_sensors_node
+# target_link_libraries(pr2_pretouch_sensor_optical_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -102,7 +101,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS pr2_pretouch_sensors pr2_pretouch_sensors_node
+# install(TARGETS pr2_pretouch_sensor_optical pr2_pretouch_sensor_optical_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -127,7 +126,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_pr2_pretouch_sensors.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_pr2_pretouch_sensor_optical.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
