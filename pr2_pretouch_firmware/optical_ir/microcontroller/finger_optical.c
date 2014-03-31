@@ -9,8 +9,9 @@ microcontroller: Atmel AVR ATMega168(P)/328(P)
 #include <avr/interrupt.h> 
 #include <util/delay.h>
 
-char SPI_SlaveReceive(void);
+uint8_t SPI_SlaveReceive(void);
 volatile char ch;
+volatile uint8_t idx;
 
 int main (void) 
 {  
@@ -24,7 +25,7 @@ int main (void)
   EICRA |= (1<<ISC01); //INT0 triggered on falling edge
 
   /*********** ADC ***********/
-  ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // Set ADC prescaler to 128 - 62.5KHz sample rate @ 8MHz 
+  ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // ADC prescaler=128 - 62.5KHz sample rate @ 8MHz 
   //ADCSRA |= (1 << ADPS2) | (1 << ADPS1); // (8M/64)
   //ADCSRA |= (1 << ADPS2) | (1 << ADPS0); // (8M/32)
   //ADCSRA |= (1 << ADPS2); // (8M/16)
@@ -43,7 +44,7 @@ int main (void)
 
   /********** SPI ***********/
   DDRB = (1<<DDB4); // MISO output
-  SPCR = (1<<SPE); //Enable SPI 
+  SPCR = (1<<SPE); // Enable SPI 
 
   /*****fixed ADC ch (for testing only) ******/
   //PORTD |= _BV(7);
@@ -52,6 +53,7 @@ int main (void)
   //PORTD |= _BV(4);
 
   ch = 1;  
+  idx = 2;
 
   /* MAIN LOOP*/
   for(;;)  // Loop Forever 
@@ -62,43 +64,53 @@ int main (void)
 ISR(INT0_vect) {
 
   // Before an ADC conversion, send signal to switch to select the desired channel
-  // Order: PD7->PD6->PD5->PD4 (D1->D2->D3->D4)
+  // Order: PD7->PD6->PD5->PD4 (CH1->CH2->CH3->CH4)
+  // We want to have the ADC samples on channels (ch) in this order: 1-2-3-4
+  // The SPI master Picoblaze send data (idx) by the order: 4-3-2-1
+  // Ideally, we want the variables ch and idx in these orders:
+  // idx: 4 3 2 1 4 3 2 1
+  // ch : 1 2 3 4 1 2 3 4  
+  // However, a new idx is given after the ADC os sampled using ch
+  // Therefor, the idx should indicate the "next" ch we want to sample
+  // ch is used before getting the new idx, so ch is lag behind the idx by 1 location
+  // ch : 1 2 3 4 1 2 3 4
+  // idx:   4 3 2 1 4 3 2 1
+  // These result in the following mapping:
+  if (idx == 1) {
+    ch = 2;
+  } else if (idx == 2) {
+    ch = 1;
+  } else if (idx == 3) {
+    ch = 4; 
+  } else { //idx == 4
+    ch = 3;
+  } 
+
+  // Send High signal to the switch to select which channel to open
   PORTD |= _BV(8-ch);
   
   // Wait for the switch working and the signal going through to opamp
-  //_delay_ms(2);
-  _delay_us(1);//10
+  _delay_us(1);
 
   // Single ADC conversion
   ADCSRA |= (1 << ADSC); //single ADC conversion
 
   // Wait for the ADC to finish
-  //_delay_ms(1);
-  _delay_us(3);//5
+  _delay_us(3);
 
   // De-select the current channel
   PORTD &= ~_BV(8-ch);
 
-  // Increment the Channel number
-  ch = ch==4 ? 1 : ch+1; 
+  // wait for SPI transmission finish and get data
+  idx = SPI_SlaveReceive();
 }
 
 ISR(ADC_vect) { 
   // move the ADC value to SPI buffer
   SPDR = ADCH;
-  // wait for SPI transmission finish and get data
-  char idx = SPI_SlaveReceive();
-  if (idx == 1) {
-    // the master just requested data from the last channel
-    // the next desired channel will be the first
-    // reset the ch to make sure it is aligned:
-    // idx: 1 4 3 2 1 4 3 2 1
-    //  ch: ? 1 2 3 4 1 2 3 4
-    ch = 1;
-  }
 } 
 
-char SPI_SlaveReceive(void) {
+uint8_t SPI_SlaveReceive(void) {
   // Wait for reception complete (until SPIF is set)
   while(!(SPSR & (1<<SPIF)));
   // Return Data Register

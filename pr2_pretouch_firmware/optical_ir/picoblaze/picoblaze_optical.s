@@ -195,10 +195,12 @@ init:
 	; Use timerA
 	; Setup timerA to expire every 0.1ms (10,000Hz) (V) (ADC prescalar=4)
 	;load s0, 1 ; 0.1ms * 1 = 0.1ms    1 = 0x01
-	; Setup timerA to expire every 2ms (2,00Hz) (V) (ADC prescalar=4)
-	load s0, 5 ; 0.1ms * 5 = 5ms    5 = 0x05
-	; Setup timerA to expire every 2ms (500Hz) (V) (ADC prescalar=4)
-	;load s0, 14 ; 0.1ms * 20 = 2ms    20 = 0x14
+	; Setup timerA to expire every 0.5ms (2,000Hz) (V) (ADC prescalar=4)
+    ; 4 ch for 1 reading, so the actual reading rate is 2000/4 = 500 Hz
+	load s0, 5 ; 0.1ms * 5 = 0.5ms    5 = 0x05
+	; Setup timerA to expire every 2.5ms (400Hz) (V) (ADC prescalar=4)
+    ; 4 ch for 1 reading, so the actual reading rate is 400/4 = 100 Hz
+	;load s0, 19 ; 0.1ms * 25 = 2.5ms    25 = 0x19
 
 	; Setup timerB to expire every 125us (8,000Hz) (V) (ADC prescalar=4)
 	; load s0, 7d ; 0.001ms * 125 = 0.125ms   125 = 0x7d
@@ -211,7 +213,7 @@ init:
 	; Setup timerB to expire every 14us (71,429Hz) (V)
 	; load s0, e ; 0.001ms * 14 = 0.014ms    = 0x0e
 	; Setup timerB to expire every 28us (~35,715Hz) (V)
-	;load s0, e ; 0.001ms * 28 = 0.028ms    = 0x1c
+	; load s0, e ; 0.001ms * 28 = 0.028ms    = 0x1c
 	; Setup timerB to expire every 23us (~44,100Hz) (V)
 	; load s0, 17 ; 0.001ms * 23 = 0.023ms    = 0x17
 	; Setup timerB to expire every 45us (~22,050Hz) (V)
@@ -221,7 +223,6 @@ init:
 	; Setup timerB to expire every 17us (58,800Hz) (V)
 	; load s0, 11 ; 0.001ms * 17 = 0.017ms    = 0x11
 	
-
 	output s0, TIMER_A_COMPARE_REG
 	load s0, 0  
 	output s0, TIMER_A_COUNTER_REG   ; reset Timer B counter to 0
@@ -259,7 +260,7 @@ main_loop:
     ; Flush the data buffer after every 4 sensor reads (4 channels)
 	; (4=0x4) * 1 channel = 4
 
-	load s1, 4;  4 cycles
+	load s2, 4;  4 cycles
 	read_sensor_multiple_times:
 
         wait_for_timerA_overflow_loop:
@@ -286,7 +287,7 @@ main_loop:
             ; the sub-routine will also de-assert chipselect before returning
 					;call read_sensor
 
-	    sub s1, 1
+	    sub s2, 1
 		jump NZ, read_sensor_multiple_times
 	
 	  ; New pressure data is ready, all we need to do is flip pressure buffer
@@ -306,10 +307,9 @@ main_loop:
 ;**********************************************************************************
 ; Reads data from sensor into current location of output buffer
 ; Modifies 
-;   s0,s1,s2
+;   s0
 ; Inputs 
-;   s1 : Address of first location in buffer to store data
-;   s2 : Address just after last location in buffer
+;   s2
 ; Outputs:
 ;   NONE
 ; Preconditions:
@@ -331,7 +331,7 @@ read_sensor:
 	; data transfer:  
 	;   read 1bytes of data from pressure sensor into buffer
 	;   assume pressure index pointer is already pointing to proper place
-		load s0, s1   ; send the current s1 value to the slave (4-3-2-1 cycle)
+		;load s0, s2   ; send the current s2 value to the slave (4-3-2-1 cycle)
 		call spi_xfer_8
 	; put recieved data (s0) into pressure buffer
 		output s0, PRESSURE_DATA_REG
@@ -339,8 +339,8 @@ read_sensor:
 	; deassert chipselect and wait for bit for de-select to propogate
 		load s0, SPI_DEASSERT_CHIPSEL_FLAG
 		output s0, SPI_CTRL_REG
-		;load s0, DELAY_3US_COUNT
-		;call delay_us
+		load s0, DELAY_40US_COUNT
+		call delay_us
 
 	; read_pressure_sensor is done
 	return 
@@ -360,8 +360,8 @@ read_sensor:
 ; Postcondition:
 ;  SPI is idle
 spi_xfer_8:	
-	; put s0 in SPI buffer and start transfer
-	output s0, SPI_DATA_REG
+	; put 5h3 current s2 value in SPI buffer and start transfer
+	output s2, SPI_DATA_REG
 	; wait for transfer to complete
 	spi_xfer_busy_wait:
 		input s0, SPI_CTRL_REG
