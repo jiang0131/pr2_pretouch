@@ -94,7 +94,7 @@ while not rospy.is_shutdown():
     ####################################################
     ########### Peak Finding  ##########################
     ####################################################
-    resonant_freq = helper.max_amp_approx_ranged(freq, Pxx_diff_smoothed)
+    resonant_freq = helper.max_amp_approx(freq, Pxx_diff_smoothed)
 
     ####################################################
     ########### Update Kalman Filter ###################

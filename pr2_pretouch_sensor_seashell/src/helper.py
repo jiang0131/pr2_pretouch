@@ -10,9 +10,8 @@ import scipy.io.wavfile as wavefile
 import cookb_signalsmooth
 
 # Spectrum Estimation (WOSA) parameters
-Ns = 1024
-overlap_rate = 0.7
-nOverlap = Ns * overlap_rate
+NS = 1024 #1024
+OVERLAP_RATE = 0.7
 
 def log(data):
     '''
@@ -28,7 +27,41 @@ def log(data):
     return data
 
 
-def get_spectrums(signal_in, signal_out, rate):
+def SNR(pxx):
+    '''
+    Compute the sensor performance indicator SNR.
+
+    Args:
+        pxx (list/no.array): the power spectral desnsity
+    Return:
+        snr (float): the SNR value
+    '''
+    return np.max(pxx) - np.mean(pxx)
+
+
+def CNR(array, max_dist=10):
+    '''
+    Compute the sensor performance indicator CNR. Use 10mm as the farest
+    distance, and 1mm as the closest distance.
+    
+    Args:
+        arr (np.array): a MxN 2D array. N is the num of distint distance
+                        sensor readings are collected. M is the num of 
+                        readings collected at each distance.
+        max_dist (int): the farest distance in milimeter
+    Returns:
+        cnr (float): the CNR value
+    '''
+    if array.shape[1] < 10:
+        raise ValueError("Not enough data")
+    mean_std = np.mean(np.std(array, axis=1))
+    mean_1mm = np.mean(array[:,0])
+    mean_10mm = np.mean(array[:,9])
+    return (mean_10mm - mean_1mm) / mean_std
+
+
+def get_spectrums(signal_in, signal_out, rate, 
+                  Ns=NS, overlap_rate=OVERLAP_RATE):
     '''
     Compute the spectrums for the input time-series data
 
@@ -43,12 +76,13 @@ def get_spectrums(signal_in, signal_out, rate):
         Pxx_diff: the difference (Pxx_out-Pxx_in)
         Pxx_diff_smoothed: the smoothed (in frequency domain) Pxx_diff
     '''
+    nOverlap = Ns * overlap_rate
     (Pxx_in, freq) = mlab.psd(signal_in, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
     (Pxx_out, freq) = mlab.psd(signal_out, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
     Pxx_in = log(Pxx_in)
     PxX_out = log(Pxx_out)
     Pxx_diff = Pxx_out - Pxx_in
-    Pxx_diff_smoothed = cookb_signalsmooth.smooth(Pxx_diff, window_len=51, window='flat')
+    Pxx_diff_smoothed = cookb_signalsmooth.smooth(Pxx_diff.ravel(), window_len=51, window='flat')
     return freq, Pxx_in, Pxx_out, Pxx_diff, Pxx_diff_smoothed
 
 
@@ -59,7 +93,7 @@ def max_amplitude(freq, pxx) :
     f_peak = freq[k]
     return f_peak
 
-
+'''
 def max_amp_approx(freq, pxx, window='hanning'):
     if window == 'hanning':
         P = 1.36
@@ -73,14 +107,14 @@ def max_amp_approx(freq, pxx, window='hanning'):
     k_peak = k + tau
     f_peak = k_peak * bin_width
     return f_peak
-
+'''
 
 #find the max amplitude in a certain range
-def max_amp_approx_ranged(freq,
-                          Pxx,
-                          min_freq=6000,
-                          max_freq=12000,
-                          window='hanning'):
+def max_amp_approx(freq,
+                   Pxx,
+                   min_freq=6000,
+                   max_freq=12000,
+                   window='hanning'):
     if window == 'hanning':
         P = 1.36
     binwidth = freq[1] - freq[0]
@@ -121,27 +155,35 @@ def plot_graph(freq, Pxx_1, Pxx_2, Pxx_diff, Pxx_diff_smoothed):
     '''
     Given two frequency spectrum data, plot each of them and the difference
     '''
-    plt.figure(1)
-    plt.plot(freq, Pxx_1)
-    plt.title('Reference Channel (CH1)')
-    plt.figure(2)
-    plt.plot(freq, Pxx_2)
-    plt.title('Sensing Channel (CH2)')
-    plt.figure(3)
-    plt.plot(freq, Pxx_diff)
-    plt.title('Difference')
-    plt.figure(4)
-    plt.plot(freq, Pxx_diff_smoothed)
-    plt.title('Smoothed Difference')
+    def plot_psd(freq, pxx, title, fs=20):
+        plt.figure()
+        plt.plot(freq, pxx)
+        plt.title(title, fontsize=fs)
+        plt.xlabel('Frequency (Hz)', fontsize=fs)
+        plt.ylabel('Power Spectral Density (dB/Hz)', fontsize=fs)
+        plt.grid(True)
+        plt.tick_params(axis='both', which='major', labelsize=20)
+        plt.tick_params(axis='both', which='minor', labelsize=14)
+    plot_psd(freq, Pxx_1, 'Reference Channel')
+    plot_psd(freq, Pxx_2, 'Sensing Channel')
+    plot_psd(freq, Pxx_diff, 'Difference')
+    plot_psd(freq, Pxx_diff_smoothed, 'Smoothed Difference')
+    print 'snr for diff: ', SNR(Pxx_diff)
+    print 'snr for diff smoothed: ', SNR(Pxx_diff_smoothed)
     plt.show()
 
 
-def plot_from_rawdata(data1, data2, rate):
+def plot_from_rawdata(data1, data2, rate, Ns=NS):
     '''
     Given two time-series data and the sampling rates, plot the frequency spectrums
     '''
-    (Pxx_in, freq) = mlab.psd(data1, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
-    (Pxx_out, freq) = mlab.psd(data2, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
+    nOverlap = Ns * overlap_rate
+    (Pxx_in, freq) = mlab.psd(data1, NFFT=Ns, Fs=rate, 
+                              detrend=mlab.detrend_mean, window=mlab.window_hanning,
+                              noverlap=nOverlap, sides='onesided')
+    (Pxx_out, freq) = mlab.psd(data2, NFFT=Ns, Fs=rate, 
+                               detrend=mlab.detrend_mean, window=mlab.window_hanning,
+                               noverlap=nOverlap, sides='onesided')
     Pxx_in = log(Pxx_in)
     Pxx_out = log(Pxx_out)
     Pxx_diff = Pxx_out - Pxx_in

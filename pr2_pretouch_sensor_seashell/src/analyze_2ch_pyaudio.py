@@ -9,21 +9,37 @@ import wave
 import struct
 import helper
 import pickle
+import argparse
 
 CHUNK = 2200
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100 #sample rate
-RECORD_SECONDS = int(raw_input('How many seconds to analyze? ....... '))
 
-LOAD_DATA = True
-SAVE_DATA = False
+parser = argparse.ArgumentParser()
+parser.add_argument('-l', '--load_file', type=argparse.FileType('rb'),
+                    help="the pickle file to load sound data from")
+parser.add_argument('-s', '--save_file', type=argparse.FileType('wb'),
+                    help="the pickle file to save sound data to")
+parser.add_argument('-n', '--N', type=int,
+                    help="the number of data point for computing psd")
+parser.add_argument('-ns', '--Ns', type=int,
+                    help="the Ns FFT parameter for computing psd")
+parser.add_argument('-ov', '--overlap_ratio', type=float,
+                    help="the overlap ratio")
+args = parser.parse_args()
 
-if LOAD_DATA:
-    signal = pickle.load(open( "sound_data/signal_5s_4.pickle", "rb" ))
+print args.overlap_ratio
+
+if args.load_file:
+    signal = pickle.load(args.load_file)
 else:
+    try:
+        RECORD_SECONDS = float(raw_input('How many seconds to analyze? ....... '))
+    except ValueError:
+        print 'Wrong input time. Use the default (1 second) for analyis'
+        RECORD_SECONDS = 1
     device_id = helper.find_audio_device(name='Lexicon Omega: USB Audio (hw:1,0)')
-    print device_id
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -34,10 +50,12 @@ else:
     print("* recording")
 
     ####################################################
-    ########### Getting Sound Data #####################
+    ######## Getting Sound Data through PyAudio ########
     ####################################################
     n_reads = int(RATE * RECORD_SECONDS / CHUNK)
+    print 'n_reads=', n_reads
     data = ''.join([stream.read(CHUNK) for i in range(n_reads)])
+    print 'len(data)=', len(data)
     if FORMAT == pyaudio.paInt16:
         signal = struct.unpack("<%uh" % (len(data) / 2), data)
     elif FORMAT == pyaudio.paInt24:
@@ -48,13 +66,15 @@ else:
         signal = struct.unpack("<%ul" % (len(data) / 4), data)
     else:
         raise TypeError("Not supported PyAudio format")
-    if SAVE_DATA:
-        pickle.dump(signal, open( "signal_5s_5.pickle", "wb" ) )
+    if args.save_file:
+        pickle.dump(signal, args.save_file)
     print("* done recording")
     stream.stop_stream()
     stream.close()
     p.terminate()
 
-signal_1 = signal[0::2]
-signal_2 = signal[1::2]
-helper.plot_from_rawdata(signal_1, signal_2, RATE)
+N = args.N if args.N else 2048
+Ns = args.Ns if args.Ns else 1024
+overlap_ratio = args.overlap_ratio if args.overlap_ratio else 0.7
+signal = signal[:N]
+helper.plot_from_rawdata(signal[0::2], signal[1::2], RATE, Ns)
