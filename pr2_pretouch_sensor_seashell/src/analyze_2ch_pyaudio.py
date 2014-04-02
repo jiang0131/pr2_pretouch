@@ -77,4 +77,4 @@ N = args.N if args.N else 2048
 Ns = args.Ns if args.Ns else 1024
 overlap_ratio = args.overlap_ratio if args.overlap_ratio else 0.7
 signal = signal[:N]
-helper.plot_from_rawdata(signal[0::2], signal[1::2], RATE, Ns)
+helper.plot_from_rawdata(signal[0::2], signal[1::2], RATE, Ns, overlap_ratio)

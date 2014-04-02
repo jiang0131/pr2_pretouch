@@ -1,25 +1,28 @@
+#!/usr/bin/env python
+# A script to use the pyaudio interface to record sound.
+# Useful for verifying the microphones are working properly.
+# @Liang-Ting Jiang (jianglt@uw.edu)
+
 import pyaudio
 import wave
+import helper
 
 CHUNK = 2200
 FORMAT = pyaudio.paInt24
 CHANNELS = 2
 RATE = 44100 #sample rate
-#RECORD_SECONDS = 5
 RECORD_SECONDS = int(raw_input('How many seconds to record? ....... '))
-#WAVE_OUTPUT_FILENAME = "output.wav"
 FILENAME_1 = 'record_ch1_pyaudio.wav'
 FILENAME_2 = 'record_ch2_pyaudio.wav'
 
 p = pyaudio.PyAudio()
-print p.get_device_info_by_index(4)
-p.is_format_supported(RATE, input_device=4, input_channels=CHANNELS, input_format=FORMAT)
-
+device_id = helper.find_audio_device(name='Lexicon Omega: USB Audio (hw:1,0)')
+print p.get_device_info_by_index(device_id)
 stream = p.open(format=FORMAT,
                 channels=CHANNELS,
                 rate=RATE,
                 input=True,
-                input_device_index = 4,               
+                input_device_index = device_id,               
                 frames_per_buffer=CHUNK) #buffer
 
 print("* recording")
@@ -61,12 +64,3 @@ record_2.close()
 print "WAV FILENAME 1: " + FILENAME_1
 print "WAV FILENAME 2: " + FILENAME_2
 
-'''
-
-wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-wf.setnchannels(CHANNELS)
-wf.setsampwidth(p.get_sample_size(FORMAT))
-wf.setframerate(RATE)
-wf.writeframes(b''.join(frames))
-wf.close()
-'''

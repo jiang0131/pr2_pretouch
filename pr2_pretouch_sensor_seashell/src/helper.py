@@ -11,7 +11,7 @@ import cookb_signalsmooth
 
 # Spectrum Estimation (WOSA) parameters
 NS = 1024 #1024
-OVERLAP_RATE = 0.7
+OVERLAP_RATIO = 0.7
 
 def log(data):
     '''
@@ -61,7 +61,7 @@ def CNR(array, max_dist=10):
 
 
 def get_spectrums(signal_in, signal_out, rate, 
-                  Ns=NS, overlap_rate=OVERLAP_RATE):
+                  Ns=NS, overlap_ratio=OVERLAP_RATIO):
     '''
     Compute the spectrums for the input time-series data
 
@@ -76,7 +76,7 @@ def get_spectrums(signal_in, signal_out, rate,
         Pxx_diff: the difference (Pxx_out-Pxx_in)
         Pxx_diff_smoothed: the smoothed (in frequency domain) Pxx_diff
     '''
-    nOverlap = Ns * overlap_rate
+    nOverlap = Ns * overlap_ratio
     (Pxx_in, freq) = mlab.psd(signal_in, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
     (Pxx_out, freq) = mlab.psd(signal_out, NFFT=Ns, Fs=rate, detrend=mlab.detrend_mean, window=mlab.window_hanning, noverlap=nOverlap, sides='onesided')
     Pxx_in = log(Pxx_in)
@@ -173,11 +173,11 @@ def plot_graph(freq, Pxx_1, Pxx_2, Pxx_diff, Pxx_diff_smoothed):
     plt.show()
 
 
-def plot_from_rawdata(data1, data2, rate, Ns=NS):
+def plot_from_rawdata(data1, data2, rate, Ns=NS, overlap_ratio=OVERLAP_RATIO):
     '''
     Given two time-series data and the sampling rates, plot the frequency spectrums
     '''
-    nOverlap = Ns * overlap_rate
+    nOverlap = Ns * overlap_ratio
     (Pxx_in, freq) = mlab.psd(data1, NFFT=Ns, Fs=rate, 
                               detrend=mlab.detrend_mean, window=mlab.window_hanning,
                               noverlap=nOverlap, sides='onesided')
