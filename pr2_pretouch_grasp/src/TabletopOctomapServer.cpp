@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2012, L.T. Jiang
+ * Copyright (c) 2014-2014, Liang-Ting Jiang
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,34 +42,32 @@ m_decay_rate_occlusion(4.0),
 m_decay_rate_transparency(3.0),
 m_object_idx(0) // temperary variable
 {
-	//tabletop octomap processing service
+  //tabletop octomap processing service
   m_tabletopProcessingService = m_nh.advertiseService("tabletop_octomap", 
-												&TabletopOctomapServer::tabletopProcessingSrv, this);
-	m_getProbabilisticPointCloudService = m_nh.advertiseService("get_probabilistic_pointcloud",
-												&TabletopOctomapServer::getProbabilisticPointCloudSrv, this);
-	m_addPointService = m_nh.advertiseService("add_point",
-												&TabletopOctomapServer::addPointSrv, this);
+                                    &TabletopOctomapServer::tabletopProcessingSrv, this);
+  m_getProbabilisticPointCloudService = m_nh.advertiseService("get_probabilistic_pointcloud",
+                                    &TabletopOctomapServer::getProbabilisticPointCloudSrv, this);
+  m_addPointService = m_nh.advertiseService("add_point",
+                                  &TabletopOctomapServer::addPointSrv, this);
 
-	//publisher for visualize table pointclouds
-	m_tablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("table_points", 10);
-	//publisher for visualize object pointclouds
-	m_objectPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("object_points", 10);
-	//publisher for visualize simulated table pointclouds
-	m_simTablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("sim_table_points", 10);
-	//publisher for visualize simulated table pointclouds
-	m_simTablePointsPub2 = priv_nh_.advertise<sensor_msgs::PointCloud2>("sim_table_points2", 10);
-	//publisher for visualize intersecting pointclouds
-	m_intersectPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("intersect_points", 10);
-	//publisher for visualize shadow pointclouds
-	m_shadowPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("shadow_points", 10);
-	//publisher for visualize the real shadow pointclouds
-	m_realShadowPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("real_shadow_points", 10);
-	//publisher for visualize projected pointclouds
-	m_projectedTablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("projected_table_points", 10);
-	//publisher for visualize endPoints pointclouds (debug)
-	m_endPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("end_points", 10);
-
-  // LT new
+  //publisher for visualize table pointclouds
+  m_tablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("table_points", 10);
+  //publisher for visualize object pointclouds
+  m_objectPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("object_points", 10);
+  //publisher for visualize simulated table pointclouds
+  m_simTablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("sim_table_points", 10);
+  //publisher for visualize simulated table pointclouds
+  m_simTablePointsPub2 = priv_nh_.advertise<sensor_msgs::PointCloud2>("sim_table_points2", 10);
+  //publisher for visualize intersecting pointclouds
+  m_intersectPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("intersect_points", 10);
+  //publisher for visualize shadow pointclouds
+  m_shadowPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("shadow_points", 10);
+  //publisher for visualize the real shadow pointclouds
+  m_realShadowPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("real_shadow_points", 10);
+  //publisher for visualize projected pointclouds
+  m_projectedTablePointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("projected_table_points", 10);
+  //publisher for visualize endPoints pointclouds (debug)
+  m_endPointsPub = priv_nh_.advertise<sensor_msgs::PointCloud2>("end_points", 10);
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
 
   //initialize parameters
@@ -96,14 +94,12 @@ m_object_idx(0) // temperary variable
   priv_nh_.param<double>("up_direction", up_direction_, -1.0);
   priv_nh_.param<bool>("flatten_table", flatten_table_, false);
   priv_nh_.param<double>("table_padding", table_padding_, 0.0);
-  if(flatten_table_) ROS_DEBUG("flatten_table is true");
-  else ROS_DEBUG("flatten_table is false");
-
   priv_nh_.param<bool>("use_prob_map", m_useProbMap, false);
   priv_nh_.param<double>("sim_table_resolution", m_sim_table_res, 0.010);
 
+  if(flatten_table_) ROS_DEBUG("flatten_table is true");
+  else ROS_DEBUG("flatten_table is false");
 }
-
 
 
 /*////////////////////////////////////////////////////////////////////////////////////////
@@ -116,26 +112,20 @@ TabletopOctomapServer::~TabletopOctomapServer() {}
 * Service callback for the tabletop_octomap service 
 */////////////////////////////////////////////////////////////////////////////////////////
 bool TabletopOctomapServer::tabletopProcessingSrv(std_srvs::Empty::Request& req,
-                                          std_srvs::Empty::Response& resp) {
+                                    std_srvs::Empty::Response& resp) {
 
   //record start time
   ros::WallTime startTime = ros::WallTime::now();
-
-	//take a snapshot of the PointCloud2
-	sensor_msgs::PointCloud2 snapshot_pc2 = getPointCloud2(); 
-
-	//get PCL PointCloud of the table and objects from the whole PointCloud2
-	PCLPointCloud::Ptr sim_table_pc (new PCLPointCloud);
-	PCLPointCloud::Ptr projected_table_pc (new PCLPointCloud);
-	PCLPointCloud::Ptr object_pc (new PCLPointCloud);
-	objectDetection(snapshot_pc2, *object_pc, sim_table_pc, projected_table_pc);
+  //take a snapshot of the PointCloud2
+  sensor_msgs::PointCloud2 snapshot_pc2 = getPointCloud2(); 
+  //get PCL PointCloud of the table and objects from the whole PointCloud2
+  PCLPointCloud::Ptr sim_table_pc (new PCLPointCloud);
+  PCLPointCloud::Ptr projected_table_pc (new PCLPointCloud);
+  PCLPointCloud::Ptr object_pc (new PCLPointCloud);
+  objectDetection(snapshot_pc2, *object_pc, sim_table_pc, projected_table_pc);
 
   //save the original object_pc, for future inquiry
   pcl::copyPointCloud(*object_pc, m_object_pc);
-
-	std::cout << object_pc->header.frame_id << std::endl;
-	std::cout << m_worldFrameId << std::endl;
-	std::cout << object_pc->header.stamp  << std::endl;
 
   //get the global transform
   tf::StampedTransform sensorToWorldTf;
@@ -143,47 +133,39 @@ bool TabletopOctomapServer::tabletopProcessingSrv(std_srvs::Empty::Request& req,
   std::cout << "m_camera_frame_id =  " << m_camera_frame_id <<std::endl;
   std::cout << " object_pc->header.frame_id=  " << object_pc->header.frame_id <<std::endl;
   try {
-    //m_tfListener.lookupTransform(m_worldFrameId, object_pc->header.frame_id, 
-    //                             object_pc->header.stamp, sensorToWorldTf);
-
-    // LT new: convert the PCL timestamp to ROS timestamp
+    //convert the PCL timestamp to ROS timestamp
     ros::Time stamp();
-    /*
     m_tfListener.lookupTransform(m_worldFrameId, m_camera_frame_id,
-                                 object_pc->header.stamp, sensorToWorldTf);
-    */
-    m_tfListener.lookupTransform(m_worldFrameId, m_camera_frame_id,
-                                 snapshot_pc2.header.stamp, sensorToWorldTf);
-
+                        snapshot_pc2.header.stamp, sensorToWorldTf);
   } catch(tf::TransformException& ex){
     ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting service");
     return false;
   }
-
-	//get shadow pointcloud
-	PCLPointCloud::Ptr shadow_pc (new PCLPointCloud);
-	getShadow(sim_table_pc, projected_table_pc, shadow_pc);
+  //get shadow pointcloud
+  PCLPointCloud::Ptr shadow_pc (new PCLPointCloud);
+  getShadow(sim_table_pc, projected_table_pc, shadow_pc);
 
   //assign prior in Octomap for sensed pointcloud
-	KeySet obj_occupied_cells;
+  KeySet obj_occupied_cells;
   initTabletopPrior(sensorToWorldTf.getOrigin(), *object_pc, *projected_table_pc, obj_occupied_cells);
 
-	//assign prior in Octomap for suspicious transparent part
-	initTransparentPrior(object_pc, shadow_pc, obj_occupied_cells, m_object_idx);	
+  //assign prior in Octomap for suspicious transparent part
+  initTransparentPrior(object_pc, shadow_pc, obj_occupied_cells, m_object_idx);	
 
-	//publish pointcloud for visualization
+  //publish pointcloud for visualization
   sensor_msgs::PointCloud2 pc2;
   pcl::toROSMsg( *sim_table_pc, pc2 );
   m_tablePointsPub.publish(pc2);
 
   //running time
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_INFO("Tabletop Octomap created in TabletopOctomapServer done (%zu+%zu pts (object/table), %f sec)", object_pc->size(), sim_table_pc->size(), total_elapsed);
+  ROS_INFO("Tabletop Octomap created in TabletopOctomapServer done (%zu+%zu pts (object/table), %f sec)", 
+                  object_pc->size(), sim_table_pc->size(), total_elapsed);
 
   //publish to all topics
   publishAllProbMap(snapshot_pc2.header.stamp);
 
-	return true; 
+  return true; 
 }
 
 /*////////////////////////////////////////////////////////////////////////////////////////
@@ -192,38 +174,33 @@ bool TabletopOctomapServer::tabletopProcessingSrv(std_srvs::Empty::Request& req,
 bool TabletopOctomapServer::getProbabilisticPointCloudSrv(pr2_pretouch_msgs::GetProbabilisticPointCloud::Request& req,
                                           pr2_pretouch_msgs::GetProbabilisticPointCloud::Response& resp) {
 	
-	//grab the augmented object pointcloud and its associated probabilities
-	sensor_msgs::PointCloud object_cloud;
-	std::vector<float> probabilities;
-	getProbabilisticPointCloud (object_cloud, probabilities, m_object_idx);
-	resp.cloud = object_cloud;
-	resp.probabilities = probabilities;
-	//Table frame
-	geometry_msgs::Transform table_tf;
-	tf::transformTFToMsg(m_table_plane_trans, table_tf);
-	//geometry_msgs::TransformStamped table_frame;
-	//table_frame.header.frame_id = m_tabletopProcessingFrame;
-	//table_frame.header.stamp = object_cloud.header.stamp;
-	//table_frame.child_frame_id = "table_frame";
-	//table_frame.transform = m_table_plane_trans;
-	resp.table_tf = table_tf;
+  //grab the augmented object pointcloud and its associated probabilities
+  sensor_msgs::PointCloud object_cloud;
+  std::vector<float> probabilities;
+  getProbabilisticPointCloud (object_cloud, probabilities, m_object_idx);
+  resp.cloud = object_cloud;
+  resp.probabilities = probabilities;
+  //Table frame
+  geometry_msgs::Transform table_tf;
+  tf::transformTFToMsg(m_table_plane_trans, table_tf);
+  resp.table_tf = table_tf;
 
   sensor_msgs::PointCloud original_object_cloud;
   sensor_msgs::PointCloud2 pc2;
   pcl::toROSMsg( m_object_pc, pc2 );
   sensor_msgs::convertPointCloud2ToPointCloud (pc2, original_object_cloud);
   resp.original_cloud = original_object_cloud; 
-	std::cout << "size of the deterministic pointcloud: " << original_object_cloud.points.size() << std::endl;
-	std::cout << "size of the probabilistic pointcloud: " << object_cloud.points.size() << std::endl;
-	return true;
+  std::cout << "size of the deterministic pointcloud: " << original_object_cloud.points.size() << std::endl;
+  std::cout << "size of the probabilistic pointcloud: " << object_cloud.points.size() << std::endl;
+
+  return true;
 }
 
 bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& req, pr2_pretouch_msgs::AddPoint::Response& resp) {
   
   std::cout << "adding a point in the octomap....: " << std::endl;
-  // find the location of the point
-  // transform the pose if required
-  
+  //find the location of the point
+  //transform the pose if required
   geometry_msgs::PoseStamped pose_stamped;
   if (req.pose_stamped.header.frame_id  != m_tabletopProcessingFrame) {
     std::cout << "transforming the location from " << req.pose_stamped.header.frame_id << " to the tabletop processing frame" << std::endl;
@@ -241,7 +218,7 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
         if (++current_try >= max_tries)
         {
           ROS_ERROR("Failed to transform Point Pose from frame %s into frame %s in %d attempt(s)", 
-									 req.pose_stamped.header.frame_id.c_str(), m_tabletopProcessingFrame.c_str(), current_try);
+                 req.pose_stamped.header.frame_id.c_str(), m_tabletopProcessingFrame.c_str(), current_try);
           return false;
         }
         ROS_DEBUG("Failed to transform Point Pose, attempt %d out of %d, exception: %s", current_try, max_tries, ex.what());
@@ -270,13 +247,12 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
   } else {
    val = 0; //logodd
   }
-  
-  std::cout << "before: " << val << std::endl;
   */
+
   //Hit or Miss?
   if (req.hit) {
     m_octree->updateNode(key, pToLogodd(m_probPretouchHit));
-    // insert this point to the object keySet
+    //insert this point to the object keySet
 		//put into the first object's index for now 
     m_objects_keys[0].insert(key);
 		std::cout << "size of the object set increased to: " <<  m_objects_keys[0].size() << std::endl;
@@ -285,8 +261,8 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
   }
   //std::cout << "(original node) after: " << m_octree->search(key)->getLogOdds() << std::endl;
 
-  // ray-casting to expand the result
-  // compute end points
+  //ray-casting to expand the result
+  //compute end points
   //float deg_step = 0.523; //30 degree
   //float deg_step = 0.7853981633974483; // 45 degree
   float deg_step = 0.6; // ? degree
@@ -299,11 +275,7 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
       float y = point.y() + r * sin(alpha) * sin(beta); 
       float z = point.z() + r * cos(beta);
       point3d end_point (x,y,z);
-      //std::cout << "alpha=" << alpha << std::endl;
-      //std::cout << "beta=" << beta << std::endl;
-      //std::cout << "cos(beta)=" << cos(beta) << std::endl;
-      //std::cout << "x=" << r * cos(alpha) * sin(beta) << ", y=" << r * sin(alpha) * sin(beta) << ", z=" << r * cos(beta) << std::endl;
-      // ray-casting from point to end_point
+      //ray-casting from point to end_point
       if (m_octree->computeRayKeys(point, end_point, m_keyRay)) { 
         float x = 0;
         int count = 0;
@@ -313,24 +285,17 @@ bool TabletopOctomapServer::addPointSrv(pr2_pretouch_msgs::AddPoint::Request& re
     				m_objects_keys[0].insert(key);
             m_octree->updateNode(*it, exp_dist(m_probPretouchHit, req.decay_rate, x));
 						std::cout << "size of the object set increased to: " <<  m_objects_keys[0].size() << std::endl;
-            //std::cout << "exp_dist(m_probPretouchHit, req.decay_rate, x) =  " << exp_dist(m_probPretouchHit, req.decay_rate, x) << ", x=" << x << std::endl;
           } else {
             m_octree->updateNode(*it, exp_dist(m_probPretouchMiss, req.decay_rate, x));
-            //std::cout << "adding: " << exp_dist(m_probPretouchMiss, req.decay_rate, x) << std::endl;
-            //std::cout << "exp_dist(m_probPretouchMiss, req.decay_rate, x) =  " << exp_dist(m_probPretouchMiss, req.decay_rate, x) << ", x=" << x << std::endl;
           }
-          //std::cout << "after: " << m_octree->search(*it)->getLogOdds() << std::endl;
           count ++;
         }
-        //std::cout << count << " nodes in this line........distance: " << x << std::endl;
       }
     }
   }
 
   resp.result = 1;
-
   publishAllProbMap(req.pose_stamped.header.stamp);
-
   return true;
 }
 
@@ -352,7 +317,6 @@ sensor_msgs::PointCloud2 TabletopOctomapServer::getPointCloud2() {
 	if (!recent_cloud)
   {
     ROS_ERROR("objectDetection:: no PointCloud2 has been received");
-    //return true;
   }
 
   ROS_INFO_STREAM("Point cloud received after " << ros::Time::now() - start_time << " seconds; processing");
@@ -377,7 +341,6 @@ sensor_msgs::PointCloud2 TabletopOctomapServer::getPointCloud2() {
         ROS_ERROR("Failed to transform cloud from frame %s into frame %s in %d attempt(s)", 
 									 old_cloud.header.frame_id.c_str(), m_tabletopProcessingFrame.c_str(), 
 																																							current_try);
-        //return true;
       }
       ROS_DEBUG("Failed to transform point cloud, attempt %d out of %d, exception: %s", current_try, max_tries, ex.what());
       //sleep a bit to give the listener a chance to get a new transform
@@ -509,8 +472,6 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
     seg_.segment (*table_inliers_ptr, *table_coefficients_ptr);
     m_table_coefficients_ptr = table_coefficients_ptr;
 
-    //std::cout << "TABLE COEFFICIENT FRAME: " << table_inliers_ptr->header.frame_id << std::endl;
-    //std::cout << "CLOUD FRAME: " << cloud_downsampled_ptr->header.frame_id << std::endl;
     if (table_coefficients_ptr->values.size () <=3)
     {
       ROS_INFO("Failed to detect table in scan");
@@ -547,20 +508,9 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
     	tmp2_pc->points[i].z = tmp_pc->points[i].z;
 		}
 
-    /*
-		projected_table_pc->resize(tmp_pc->size());
-		projected_table_pc->header.frame_id = tmp_pc->header.frame_id;
-		for (size_t i = 0; i < tmp_pc->size(); i++) {
-    	projected_table_pc->points[i].x = tmp_pc->points[i].x;
-    	projected_table_pc->points[i].y = tmp_pc->points[i].y;
-    	projected_table_pc->points[i].z = tmp_pc->points[i].z;
-		}
-		ROS_INFO("The size of the table cloud: %lu", projected_table_pc->size());
-    */
-
-    //LT: compute the simulated table pointcloud from plane model coefficients
+    //compute the simulated table pointcloud from plane model coefficients
     //Remove the outlier in projected_table_pc
-    // Create the filtering object
+    //create the filtering object
     ROS_INFO("!!!!!!!!!!!!!!!!!!! size of tmp2_pc: %d", 
 								(int)tmp2_pc->size());
     
@@ -583,24 +533,22 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
     //save to class member
     m_table_plane_trans = table_plane_trans;
 		//save the time stamp
-		//m_time_stamp = projected_table_pc->header.stamp;
 		m_time_stamp = cloud.header.stamp;
 
-    // ---[ Estimate the convex hull (not in table frame)
-    //hull_.setInputCloud (table_projected_ptr);
+    //estimate the convex hull (not in table frame)
     hull_.setInputCloud (tmp_pc);
     hull_.reconstruct (*table_hull_ptr);
 
     if(!flatten_table_)
     {
-      // --- [ Take the points projected on the table and transform them into the PointCloud message
-      //  while also transforming them into the table's coordinate system
+      //take the points projected on the table and transform them into the PointCloud message
+      //while also transforming them into the table's coordinate system
       if (!getPlanePoints<Point> (*tmp_pc, table_plane_trans, table_points))
       {
         return;
       }
 
-      // ---[ Convert the convex hull points to table frame
+      //convert the convex hull points to table frame
       if (!getPlanePoints<Point> (*tmp_pc, table_plane_trans, table_hull_points))
       {
         return;
@@ -608,7 +556,7 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
     }
     if(flatten_table_)
     {
-      // if flattening the table, find the center of the convex hull and move the table frame there
+      //if flattening the table, find the center of the convex hull and move the table frame there
       table_plane_trans_flat = getPlaneTransform (*table_coefficients_ptr, up_direction_, flatten_table_);
       tf::Vector3 flat_table_pos;
       double avg_x, avg_y, avg_z;
@@ -624,24 +572,24 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
       avg_z /= projected_table_pc->points.size();
       ROS_INFO("average x,y,z = (%.5f, %.5f, %.5f)", avg_x, avg_y, avg_z);
 
-      // place the new table frame in the center of the convex hull
+      //place the new table frame in the center of the convex hull
       flat_table_pos[0] = avg_x;
       flat_table_pos[1] = avg_y;
       flat_table_pos[2] = avg_z;
       table_plane_trans_flat.setOrigin(flat_table_pos);
 
-      // shift the non-flat table frame to the center of the convex hull as well
+      //shift the non-flat table frame to the center of the convex hull as well
       table_plane_trans.setOrigin(flat_table_pos);
 
-      // --- [ Take the points projected on the table and transform them into the PointCloud message
-      //  while also transforming them into the flat table's coordinate system
+      //take the points projected on the table and transform them into the PointCloud message
+      //while also transforming them into the flat table's coordinate system
       sensor_msgs::PointCloud flat_table_points;
       if (!getPlanePoints<pcl::PointXYZ> (*projected_table_pc, table_plane_trans_flat, flat_table_points))
       {
         return;
       }
 
-      // ---[ Convert the convex hull points to flat table frame
+      //convert the convex hull points to flat table frame
       if (!getPlanePoints<Point> (*table_hull_ptr, table_plane_trans_flat, table_hull_points))
       {
         return;
@@ -651,7 +599,6 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
   
   // Step 5: Get the objects on top of the (non-flat) table
   pcl::PointIndices cloud_object_indices;
-  //prism_.setInputCloud (cloud_all_minus_table_ptr);
   prism_.setInputCloud (cloud_filtered_ptr);
   prism_.setInputPlanarHull (table_hull_ptr);
   ROS_INFO("Using table prism: %f to %f", table_z_filter_min_, table_z_filter_max_);
@@ -672,33 +619,25 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
     return;
   }
 
-  // ---[ Downsample the points
+  //downsample the points
   pcl::PointCloud<Point>::Ptr cloud_objects_downsampled_ptr (new pcl::PointCloud<Point>);
   grid_objects_.setInputCloud (cloud_objects_ptr);
   grid_objects_.filter (*cloud_objects_downsampled_ptr);
 
-	/*
-  // ---[ If flattening the table, adjust the points on the table to be straight also
-  if(flatten_table_) straightenPoints<pcl::PointCloud<Point> >(*cloud_objects_downsampled_ptr,
-                       table_plane_trans, table_plane_trans_flat);
-	*/
   // Step 6: Split the objects into Euclidean clusters
   std::vector<pcl::PointIndices> clusters2;
-  //pcl_cluster_.setInputCloud (cloud_objects_ptr);
   pcl_cluster_.setInputCloud (cloud_objects_downsampled_ptr);
   pcl_cluster_.extract (clusters2);
   ROS_INFO ("Number of clusters found matching the given constraints: %d.", (int)clusters2.size ());
 
-  // ---[ Convert clusters into the PointCloud message
+  //convert clusters into the PointCloud message
   std::vector<sensor_msgs::PointCloud> clusters;
 	clusters.resize(clusters2.size());
 
 	//reset the objects_keys
 	m_objects_keys.resize(0);
-
 	for (size_t i = 0; i < clusters2.size(); ++i)
   {	
-
 		ROS_INFO("The %lu cluster", i);
     pcl::PointCloud<Point> cloud_cluster;
     pcl::copyPointCloud(*cloud_objects_downsampled_ptr, clusters2[i], cloud_cluster);
@@ -736,9 +675,7 @@ void TabletopOctomapServer::objectDetection(const sensor_msgs::PointCloud2 &clou
 				std::cout << "object centroid: x=" << m_object_centroid[0] << ", y=" << m_object_centroid[1] << ", z=" <<
 									   m_object_centroid[2] << " at frame: " << object_pc.header.frame_id <<   std::endl;
 			}
-
 		}
-		
   }
 
   ROS_INFO("Clusters converted");
@@ -760,7 +697,6 @@ void TabletopOctomapServer::getShadow(const PCLPointCloud::Ptr sim_table_pc,
 																			const PCLPointCloud::Ptr projected_table_pc,
 																		        PCLPointCloud::Ptr shadow_pc)                 
 {
-
 	float radius = m_sim_table_res*2;
   float shadow_clustering_tol = m_sim_table_res*2;
 
@@ -806,10 +742,8 @@ void TabletopOctomapServer::getShadow(const PCLPointCloud::Ptr sim_table_pc,
   ec.setMinClusterSize (100);
   ec.setMaxClusterSize (25000);
   ec.setSearchMethod (tree);
-	//std::cout << "# shadow points = " << shadow_pc_all->size() << std::endl;	
   ec.setInputCloud (shadow_pc_all);
   ec.extract (cluster_indices);
-  //std::cout << "size of cluster_indices: " << cluster_indices.size() << std::endl;		
 
 	pcl::PCDWriter writer;
   int j = 0;
@@ -825,10 +759,7 @@ void TabletopOctomapServer::getShadow(const PCLPointCloud::Ptr sim_table_pc,
 			
 		}	else {
 			std::cout << "can't find centroid!!!" << std::endl;
-			//ROS_ERROR("cannot find its centroid!!");
 		}	
-		//std::cout << "size of shadow controids: " << centroids.size() << std::endl;		
-
 		//(debug) write to PCD files for verification purposes
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
     for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
@@ -861,7 +792,7 @@ void TabletopOctomapServer::getShadow(const PCLPointCloud::Ptr sim_table_pc,
 		}
 	}
 	
-  // (debug)
+  //(debug)
   std::cout << "picked the #" << minClusterIdx << " shadow, distance=" << minDist <<  std::endl;
 
 	//extract the real shadow
@@ -906,13 +837,9 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 						x += m_res;
 						float val = exp_dist(p0, m_decay_rate_occlusion, x);
             m_octree->updateNode(*it_ray, val);      
-
-		        // insert this point to the object keySet
-        		//obj_uncertain_cells->insert(*it_ray);
+		        //insert this point to the object keySet
 						m_objects_keys[object_idx].insert(*it_ray);
-
           	//std::cout << "!!!!!!!!!!!!!!!assigned logodd value: " << val << " for x=" << dist << std::endl;
-						
 					} else {
 						//check with all obj_occupied_cells
 						for (KeySet::const_iterator it_obj = obj_occupied_cells.begin(), 
@@ -962,9 +889,6 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 
   //transform the direction to the original frame
   tf::TransformListener listener;
-  //tf::StampedTransform table_pose_frame(m_table_plane_trans, shadow_pc->header.stamp,
-  //                                      shadow_pc->header.frame_id, "table_frame");
-  // LT new
   tf::StampedTransform table_pose_frame(m_table_plane_trans, m_time_stamp,
                                         shadow_pc->header.frame_id, "table_frame");
   listener.setTransform(table_pose_frame);
@@ -1006,21 +930,6 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 	//find the boundary points of the object
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
  	pcl::PointCloud<pcl::Normal>::Ptr object_normals (new pcl::PointCloud<pcl::Normal>);
-
-	/*
-	pcl::PointCloud<pcl::PointNormal> mls_points;
-	pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
-	mls.setComputeNormals (true);
-  // Set parameters
-  mls.setInputCloud (object_pc);
-  mls.setPolynomialFit (true);
-  mls.setSearchMethod (tree);
-  mls.setSearchRadius (0.03);
-  // Reconstruct
-  mls.process (mls_points);
-  // Save output
-  pcl::io::savePCDFile ("mls.pcd", mls_points);
-	*/
 	
   pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
   ne.setInputCloud (object_pc);
@@ -1044,8 +953,6 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 			boundary_indices->indices.push_back((int)i);
 		}
 	}
-	//std::cout << "size of object pointcloud: " << object_pc->size() << std::endl;
-	//std::cout << "size of object boundary: " << boundary_indices->indices.size() << std::endl;
 
 	//save the boundary pointcloud
   PCLPointCloud::Ptr boundary_pc (new PCLPointCloud);
@@ -1059,93 +966,6 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
   boundary_pc->height = 1;
   boundary_pc->is_dense = true;
 
-	/*
-	//filtering based on normal
-  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-  ne.setInputCloud (boundary_pc);
-  ne.setSearchMethod (tree);
-  ne.setRadiusSearch (0.1);  
-	ne.compute (*normals);
-
-  // visualize normals
-  pcl::visualization::PCLVisualizer viewer("PCL Viewer");
-  //pcl::visualization::CloudViewer viewer("Cloud Viewer");
-  viewer.setBackgroundColor (0.0, 0.0, 0.0);
-  //viewer.addPointCloud(boundary_pc);
-  //viewer.addPointCloudNormals<pcl::Normal>(object_normals);
-  //viewer.addPointCloudNormals<pcl::PointXYZ,pcl::Normal>(boundary_pc, normals, 100, 0.02, std::string("cloud_normal"));
-  viewer.addPointCloudNormals<pcl::PointXYZ,pcl::Normal>(object_pc, object_normals, 100, 0.05, std::string("cloud_normal"));
-  viewer.spin();
-  //viewer.saveScreenshot (std::string("snapshot_pc.png"));
-	*/
-
-	/*
-	//transform boundary_pc to table_frame
-  current_try = 0;
-	max_tries = 3;
-  while (1)
-  {
-    bool transform_success = true;
-    try
-    {
-      listener.transformPointCloud("table_frame", boundary_pc, boundary_pc);
-    }
-    catch (tf::TransformException ex)
-    {
-      transform_success = false;
-      if ( ++current_try >= max_tries )
-      {
-        ROS_ERROR("Failed to transform point cloud from table_frame to %s; error %s",
-                  shadow_pc->header.frame_id.c_str(), ex.what());
-        return;
-      }
-      //sleep a bit to give the listener a chance to get a new transform
-      ros::Duration(0.1).sleep();
-    }
-    if (transform_success) break;
-  }
-
-	//find the max z in boundary_pc
-	float max_z = 0;
-	for (PCLPointCloud::iterator it = boundary_pc->begin(); it != boundary_pc->end(); it++) {
-		if ((it->z) > max_z)  max_z = it->z;
-	}
-
-	float tol = 0.03;
-  // Create the filtering object
-  pcl::PassThrough<pcl::PointXYZ> pass;
-  pass.setInputCloud (boundary_pc);
-  pass.setFilterFieldName ("z");
-  pass.setFilterLimits (max_z - tol, max_z);
-  pass.filter (*boundary_pc);
-
-	//transform boundary_pc back to original frame
-  current_try = 0;
-	max_tries = 3;
-  while (1)
-  {
-    bool transform_success = true;
-    try
-    {
-      listener.transformPointCloud(object_pc->header.frame_id, boundary_pc, boundary_pc);
-    }
-    catch (tf::TransformException ex)
-    {
-      transform_success = false;
-      if ( ++current_try >= max_tries )
-      {
-        ROS_ERROR("Failed to transform point cloud from table_frame to %s; error %s",
-                  shadow_pc->header.frame_id.c_str(), ex.what());
-        return;
-      }
-      //sleep a bit to give the listener a chance to get a new transform
-      ros::Duration(0.1).sleep();
-    }
-    if (transform_success) break;
-  }
-	// boundary_pc is now filtered and in original frame
-	*/
-	
 	//visualize the boundary pointcloud
   sensor_msgs::PointCloud2 pc2;
   pcl::toROSMsg( *boundary_pc, pc2 );
@@ -1169,19 +989,8 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 		pcl::PointXYZ p ((it->x)+extend_length*direction.vector.x,
 										 (it->y)+extend_length*direction.vector.y,
                      (it->z)+extend_length*direction.vector.z);
-		//end_pc->points.push_back(p);
 
-		//std::cout << "point: " <<  point << std::endl;
-		//std::cout << "vector_up: " <<  vector_up << std::endl;
-		//std::cout << "point_up: " <<  point_up << std::endl;
-		
     if (m_octree->computeRayKeys(point, point_up, m_keyRay)) {
-			//std::cout << "m_keyRay.size()= " << m_keyRay.size() << std::endl;
-			//std::cout << "itself: " << (m_octree->search(*(m_keyRay.begin()))->getLogOdds()) << std::endl;
-			//std::cout << "The next: " << (m_octree->search(*(m_keyRay.begin()+1))->getLogOdds()) << std::endl;
-      //is the first closest grid already explored (assigned)?
-      //if (m_octree->search(*(m_keyRay.begin()+1))->getLogOdds() <= 0) { //not yet, go ahead
-			
 			//the first-pass to decide do this ray or not
 			//it is slower but right now no other way to do it
 			bool found = false;
@@ -1193,14 +1002,11 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 						//some grids on this ray is already assign as free, don't ruin it
 						found = true; 
 					}
-					//std::cout << "Occupancy of the OcTreeNode: " << (m_octree->search(*cit)->getOccupancy()) << std::endl;
-					//std::cout << "value of the OcTreeNode: " << (m_octree->search(*cit)->getLogOdds()) << std::endl;
 				} else if (m_octree->search(*cit) == 0)  {
 					//trick: the node is not there, create it by updating the value = 0 (p=0.5)
 					float uniform_logodd = -0.1;
 					m_octree->updateNode(*cit , uniform_logodd);
 				  //m_octree->updateNode(*it, true);
-					//std::cout << m_octree->search(*cit)->getLogOdds() << std::endl;
 				}
 
 			}
@@ -1209,7 +1015,6 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 			if (!found) {
         //std::cout << "assigning value to this ray!!" << std::endl;
         float x = 0 + m_res;
-				//float logodd = 0.5;
 				//get the probability of the starting cell
 				float p0 = m_octree->search(*m_keyRay.begin())->getOccupancy(); 
         for (it_ray = m_keyRay.begin()+1; it_ray != m_keyRay.end(); it_ray++) {
@@ -1228,18 +1033,18 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 				        		//obj_uncertain_cells->insert(*it_ray);
 										m_objects_keys[object_idx].insert(*it_ray);
 									} else {
-										//std::cout << "Not on transparent ray" << std::endl;
+										std::cout << "Not on transparent ray" << std::endl;
 									}
 								}
 							}
 						} else {
-							//ROS_INFO("BADD----- THIS NODE DOESN'T EXIST"); //shouldn't happen
+							ROS_INFO("BADD----- THIS NODE DOESN'T EXIST"); //shouldn't happen
 						}
           } 
   	    	x += m_res; //step one octomap grid
         }
       } else {
- 	      //std::cout << "NOT assigning value to this ray!!" << std::endl;
+ 	      std::cout << "NOT assigning value to this ray!!" << std::endl;
 			}
     }
   } 
@@ -1255,17 +1060,7 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
                      (it->z)-extend_length*direction.vector.z);
 		end_pc->points.push_back(p);
 
-		//std::cout << "point: " <<  point << std::endl;
-		//std::cout << "vector_up: " <<  vector_up << std::endl;
-		//std::cout << "point_up: " <<  point_up << std::endl;
-		
     if (m_octree->computeRayKeys(point, point_down, m_keyRay)) {
-			//std::cout << "m_keyRay.size()= " << m_keyRay.size() << std::endl;
-			//std::cout << "itself: " << (m_octree->search(*(m_keyRay.begin()))->getLogOdds()) << std::endl;
-			//std::cout << "The next: " << (m_octree->search(*(m_keyRay.begin()+1))->getLogOdds()) << std::endl;
-      //is the first closest grid already explored (assigned)?
-      //if (m_octree->search(*(m_keyRay.begin()+1))->getLogOdds() <= 0) { //not yet, go ahead
-			
 			//the first-pass to decide do this ray or not
 			//it is slower but right now no other way to do it
 			bool found = false;
@@ -1277,21 +1072,15 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
 						//some grids on this ray is already assign as free, don't ruin it
 						found = true; 
 					}
-					//std::cout << "Occupancy of the OcTreeNode: " << (m_octree->search(*cit)->getOccupancy()) << std::endl;
-					//std::cout << "value of the OcTreeNode: " << (m_octree->search(*cit)->getLogOdds()) << std::endl;
 				} else if (m_octree->search(*cit) == 0)  {
 					//trick: the node is not there, create it by updating the value = 0 (p=0.5)
 					float uniform_logodd = -0.1;
 					m_octree->updateNode(*cit , uniform_logodd);
-				  //m_octree->updateNode(*it, true);
-					//std::cout << m_octree->search(*cit)->getLogOdds() << std::endl;
 				}
-
 			}
 
 			//the second pass to update the uncertainty
 			if (!found) {
-        //std::cout << "assigning value to this ray!!" << std::endl;
         float x = 0 + m_res;
 				//float logodd = 0.5;
 				//get the probability of the starting cell
@@ -1299,20 +1088,18 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
         for (it_ray = m_keyRay.begin()+1; it_ray != m_keyRay.end(); it_ray++) {
           float logodd = exp_dist(p0, m_decay_rate_transparency, x);
           if (logodd < -3.0) { //value too small, neglect it (p ~= 0.05)
-        		//std::cout << "value too small, STOP!!" << std::endl;
             break;
           } else {
 						if ((m_octree->search(*it_ray)) != 0) { //this node exists
 							if (m_octree->search(*it_ray)->getLogOdds() <= 0) { //this is not a sensed object nodes already
 								for (KeySet::iterator it = shadow_transparent_cells.begin(), end=shadow_transparent_cells.end(); it!=end; it++) {
 									if ((*it_ray) == (*it)) { //intersecting with the transparent ray!
-          					//std::cout << "!!!!!!!!!!!!!!!assigned logodd value: " << logodd << " for x=" << x << std::endl;
 	              		m_octree->updateNode(*it_ray, logodd); //finally assign uncertainty for the transparent cell
-		        				// insert this point to the object keySet
+		        				//insert this point to the object keySet
 				        		//obj_uncertain_cells->insert(*it_ray);
 										m_objects_keys[object_idx].insert(*it_ray);
 									} else {
-										//std::cout << "Not on transparent ray" << std::endl;
+										std::cout << "Not on transparent ray" << std::endl;
 									}
 								}
 							}
@@ -1323,32 +1110,15 @@ void TabletopOctomapServer::initTransparentPrior(const PCLPointCloud::Ptr object
   	    	x += m_res; //step one octomap grid
         }
       } else {
-        //std::cout << "NOT assigning value to this ray!!" << std::endl;
+        std::cout << "NOT assigning value to this ray!!" << std::endl;
 			}
     }
   } 
 
-	//save the estimated uncertain grids for this object
-	//m_objects_keys[0].insert(*it_ray);
-
 	//(debug) publish
   pcl::toROSMsg( *end_pc, pc2 );
 	m_endPointsPub.publish(pc2);
-
 }
-
-/*
-float exp_dist(float p0, float decay_rate, float x) {
-	float p = p0 * exp(-decay_rate * x);
-	return pToLogodd(p);
-}
-
-
-float pToLogodd(float p) {
-	return log(p) - log(1-p);
-}
-*/
-
 
 /*! Assumes plane coefficients are of the form ax+by+cz+d=0, normalized */
 tf::Transform TabletopOctomapServer::getPlaneTransform (pcl::ModelCoefficients coeffs, double up_direction, bool flatten_plane)
@@ -1516,21 +1286,6 @@ bool TabletopOctomapServer::getPlanePoints (const pcl::PointCloud<PointT> &table
   return true;
 }
 
-/*
-template <class PointCloudType>
-void TabletopOctomapServer::publishClusterMarkers(const std::vector<PointCloudType> &clusters, std_msgs::Header cloud_header)
-{
-  for (size_t i=0; i<clusters.size(); i++)
-  {
-    visualization_msgs::Marker cloud_marker = tabletop_object_detector::MarkerGenerator::getCloudMarker(clusters[i]);
-    cloud_marker.header = cloud_header;
-    cloud_marker.pose.orientation.w = 1;
-    cloud_marker.ns = "tabletop_node";
-    cloud_marker.id = current_marker_id_++;
-    m_markerPub.publish(cloud_marker);
-  }
-}
-*/
 
 void TabletopOctomapServer::initTabletopPrior(const tf::Point& sensorOriginTf, 
                     					                const PCLPointCloud &object_pc, 
@@ -1619,18 +1374,6 @@ void TabletopOctomapServer::initTabletopPrior(const tf::Point& sensorOriginTf,
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
       if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay)) {
 
-/* (TOO SLOW)
-        // iterate along the ray
-        std::vector<OcTreeKey>::iterator it_ray;
-        for (it_ray = m_keyRay.begin(); it_ray != m_keyRay.end(); it_ray++) {
-          // check this key with all keys of the object occupied cells
-          for (KeySet::iterator it_obj = obj_occupied_cells.begin(), end=obj_occupied_cells.end(); it_obj!=end; it_obj++) {
-            if ((*it_ray) != (*it_obj)) { //this grid doesn't intersects with the object (likely)
-              table_free_cells.insert(*it_ray);
-            }
-          }
-        }
-*/
         //free along the ray
         table_free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 
@@ -1675,7 +1418,6 @@ void TabletopOctomapServer::initTabletopPrior(const tf::Point& sensorOriginTf,
     m_octree->updateNode(*it, val); //this is using an arbitrary Log-Odd to update
     //m_octree->updateNode(*it, true); //this is using the sensor model/probHitLog to update
   }
-
   // TODO: eval lazy+updateInner vs. proper insertion
   // non-lazy by default (updateInnerOccupancy() too slow for large maps)
   //m_octree->updateInnerOccupancy();
@@ -1806,7 +1548,6 @@ void TabletopOctomapServer::initOcclusionPrior(const tf::Point& sensorOriginTf,
 						
 					}
 				} 
-
 	      //table_free_cells.insert(m_keyRay.begin(), m_keyRay.end());
       }
       
@@ -1837,16 +1578,6 @@ void TabletopOctomapServer::initOcclusionPrior(const tf::Point& sensorOriginTf,
   ROS_INFO("finished ray-casting for the table");
   ROS_INFO("Number of intersected cells: %d", count1);
 
-  /*
-  //mark free table cells
-  for(KeySet::iterator it = table_occupied_cells.begin(), end=table_occupied_cells.end(); it!= end; ++it){
-    if (table_occupied_cells.find(*it) == table_occupied_cells.end()){
-      m_octree->updateNode(*it, false); //this is using the sensor model/probHitLog to update
-      //m_octree->updateNode(*it, -1.5); //this is using arbitrary log-odd value to update the node
-    }
-  }
-  */
-
   // update occupied table cells:
   for (KeySet::iterator it = table_occupied_cells.begin(), end=table_occupied_cells.end(); it!= end; it++) {
     //m_octree->updateNode(*it, true); //this is using the sensor model/probMissLog to update
@@ -1855,20 +1586,7 @@ void TabletopOctomapServer::initOcclusionPrior(const tf::Point& sensorOriginTf,
     //ROS_INFO("table cells updated: p=%f", m_octree->search(*it)->getLogOdds()); //table: 2.0
   }
 
-  /*
-  // update intersect cells:
-  for (KeySet::iterator it = intersect_cells.begin(), end=intersect_cells.end(); it!= end; it++) {
-    //m_octree->updateNode(*it, true); //this is using the sensor model/probMissLog to update
-    float val = 2.5;
-    m_octree->updateNode(*it, val); //this is using an arbitrary Log-Odd to update
-    ROS_INFO("intersect cells updated: p=%f", m_octree->search(*it)->getLogOdds()); //intersect: 0.85+2.5 = 3.35
-  }
-  */
   // correlate the table grids and the object grids
-
-
-
-
   // TODO: eval lazy+updateInner vs. proper insertion
   // non-lazy by default (updateInnerOccupancy() too slow for large maps)
   //m_octree->updateInnerOccupancy();
@@ -1894,15 +1612,6 @@ void TabletopOctomapServer::initOcclusionPrior(const tf::Point& sensorOriginTf,
 
   if (m_compressMap) // LT:compress or not??
     m_octree->prune();
-
-  /*
-	//publish pointcloud for visualization
-  sensor_msgs::PointCloud2 pc2;
-  pcl::toROSMsg( *object_pc, pc2 );
-	m_objectPointsPub.publish(pc2);
-  pcl::toROSMsg( *sim_table_pc, pc2 );
-  m_tablePointsPub.publish(pc2);
-  */
 }
 
 
@@ -1957,21 +1666,6 @@ void TabletopOctomapServer::simTable(PCLPointCloud::Ptr table_projected_ptr,
     size_t nx = int((x_max - x_min) / res);
     size_t ny = int((y_max - y_min) / res);
     double z = (z_max + z_min) / 2;
-/*
-    //assign values (Method1)
-    for (size_t i=0; i<nx; ++i) {
-      for (size_t j=0; j<ny; ++j) {
-        //compute distance (from point to the table plane)
-        double x = x_min+i*res;
-        double y = y_min+j*res;
-        geometry_msgs::Point32 point;
-        point.x = x;
-        point.y = y;
-        point.z = z;
-        table_simulated.points.push_back(point);
-      }
-    }
-*/
     //assign values (Method2)
     for (size_t i=0; i<nx; ++i) {
       for (size_t j=0; j<ny; ++j) {
@@ -2038,7 +1732,6 @@ void TabletopOctomapServer::simTable(PCLPointCloud::Ptr table_projected_ptr,
     std::cout << "FRAMES...:" << std::endl;
     std::cout << "projected table frame " << table_projected_ptr->header.frame_id << std::endl;
     std::cout << "sim table frame " << table_simulated_ptr->header.frame_id << std::endl;
-
 }
 
 
@@ -2121,49 +1814,6 @@ void TabletopOctomapServer::getProbabilisticPointCloud (sensor_msgs::PointCloud 
 			probabilities.push_back(p);
 		}
 	}
-	
-  /*
-	//transform to table_frame for ease of grasp planning
- 	tf::TransformListener listener;
-  tf::StampedTransform table_pose_frame(m_table_plane_trans, cloud.header.stamp,
-                                        m_tabletopProcessingFrame, "table_frame");
-  listener.setTransform(table_pose_frame);
-	//publist the table transform one time
-	m_br.sendTransform(table_pose_frame);
-
-	//ROS_INFO( table_pose_frame );
-  std::string error_msg;
-  if (!listener.canTransform(m_tabletopProcessingFrame, "table_frame", m_time_stamp , &error_msg))
-  {
-    ROS_ERROR("Can not transform point cloud from frame %s to table frame; error %s",
-        m_tabletopProcessingFrame.c_str(), error_msg.c_str());
-    return;
-  }
-  int current_try=0, max_tries = 3;
-  while (1)
-  {
-    bool transform_success = true;
-    try
-    {
-      listener.transformPointCloud("table_frame", cloud, cloud);
-    }
-    catch (tf::TransformException ex)
-    {
-      transform_success = false;
-      if ( ++current_try >= max_tries )
-      {
-        ROS_ERROR("Failed to transform point cloud from frame %s into table_frame; error %s",
-                  m_tabletopProcessingFrame.c_str(), ex.what());
-        return;
-      }
-      //sleep a bit to give the listener a chance to get a new transform
-      ros::Duration(0.1).sleep();
-    }
-    if (transform_success) break;
-  }
-	cloud.header.frame_id = "/table_frame";
-  */
-
 	std::cout << "size of the probability: " << probabilities.size() << std::endl;
 }
 
@@ -2289,7 +1939,6 @@ void TabletopOctomapServer::publishAllProbMap(const ros::Time& rostime) {
             freeNodesVis.markers[idx].points.push_back(cubeCenter);
           }
         }
-
       }
     }
   }
