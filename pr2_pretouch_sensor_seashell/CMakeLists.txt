@@ -5,7 +5,7 @@ project(pr2_pretouch_sensor_seashell)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  pr2_pretouch_msgs
+  message_generation
   rospy
   std_msgs
 )
@@ -24,11 +24,13 @@ find_package(catkin REQUIRED COMPONENTS
 #######################################
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  NoiseVolume.msg
+  PretouchAcoustic.msg
+  SoundRaw.msg
+  SoundSpectrum.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -37,11 +39,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Service2.srv
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   pr2_pretouch_msgs#   std_msgs
-# )
+#Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -55,7 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES pr2_pretouch_sensor_seashell
-#  CATKIN_DEPENDS pr2_pretouch_msgs rospy std_msgs
+CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
