@@ -1,4 +1,4 @@
-GraspableObject target
+uw_pr2_gripper_grasp_planner_cluster/GraspableObject target
 moveit_msgs/Grasp[] grasps
 int32 num_grasp_candidates_required
 ---

@@ -6,7 +6,7 @@ from math import atan2, degrees, pi
 from geometry_msgs.msg import Vector3, Pose
 from uw_pr2_gripper_grasp_planner_cluster.convert_functions import *
 import uw_pr2_gripper_grasp_planner_cluster.draw_functions as draw_functions
-from pr2_pretouch_msgs.msg import GraspableObject, Grasp, Probe
+from pr2_pretouch_msgs.msg import Probe
 from tf.transformations import quaternion_from_euler, rotation_matrix, translation_matrix
 from moveit_msgs.srv import GetPositionIKRequest, GetPositionIK
 
@@ -53,14 +53,14 @@ class PretouchComputer:
     self.num_grasp_candidates_required = 1
 
   #initialize some member variables data
-  #target: tabletop_octomap/GraspableObject
-  #grasp: object_manipulation_msgs/Grasp
+  #target: uw_pr2_gripper_grasp_planner_cluster/GraspableObject
+  #grasp: moveit_msgs/Grasp
   def init_pretouch_computer(self, grasps, target, num_grasp_candidates_required):
     '''
     initialize some member variables data
     Args:
-      grasp (object_manipulation_msgs/Grasp)
-      target (tabletop_octomap/GraspableObject)
+      grasp (moveit_msgs/Grasp)
+      target (uw_pr2_gripper_grasp_planner_cluster/GraspableObject)
     '''
     self.grasps = grasps
     self.cluster_frame_id = target.cluster.header.frame_id
