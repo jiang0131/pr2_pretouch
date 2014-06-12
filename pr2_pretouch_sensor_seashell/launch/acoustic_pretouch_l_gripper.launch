@@ -1,5 +1,15 @@
 <launch>
-  <node name="sound_publisher_left" pkg="pr2_pretouch_sensor_seashell" type="pub_sound.py">
+
+  <node name="sound_publisher_left" pkg="pr2_pretouch_sensor_seashell" type="pub_sound.py" output="screen">
     <param name="side" value="left" />
+  </node>
+
+  <node name="acoustic_pretouch_left" pkg="pr2_pretouch_sensor_seashell" type="acoustic_pretouch_one_hand.py" output="screen">
+    <param name="side" value="left" />
+  </node>
+
+  <node name="constant_noise" pkg="pr2_pretouch_sensor_seashell" type="constant_noise.py" output="screen">
+    <param name="volume" type="double" value="0.40" />
+    <param name="sound_file" value="$(find pr2_pretouch_sensor_seashell)/sound/whitenoise_band_limited.wav" />
   </node>
 </launch>
