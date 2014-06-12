@@ -61,9 +61,10 @@ class MicSensor:
 
     #ROS node, subscriber, and publishers
     rospy.init_node('pretouch_acoustic')
+    side = rospy.get_param('~side', 'right')
     self.pub = rospy.Publisher('pretouch', PretouchAcoustic)
     self.pub_volume = rospy.Publisher('pretouch/noise_volume', NoiseVolume)
-    self.sub  = rospy.Subscriber('sound/right', SoundRaw, self.sound_callback)
+    self.sub  = rospy.Subscriber('sound/'+side, SoundRaw, self.sound_callback)
     rospy.spin()
 
 
