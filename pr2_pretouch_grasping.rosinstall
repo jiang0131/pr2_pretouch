@@ -1,0 +1,25 @@
+- git:
+    uri: https://bitbucket.org/uwsensors/pr2_pretouch.git
+    local-name: pr2_pretouch
+    version: master
+- git:
+    uri: https://bitbucket.org/uwsensors/pr2_ethercat_drivers.git
+    local-name: pr2_ethercat_drivers
+    version: hydro-fingersensor
+- git:
+    uri: https://bitbucket.org/uwsensors/uw_pr2_gripper_grasp_planner_cluster.git
+    local-name: uw_pr2_gripper_grasp_planner_cluster
+    version: master
+- git:
+    uri: https://bitbucket.org/uwsensors/uw_pr2_python.git
+    local-name: uw_pr2_python
+    version: master
+- git:
+    uri: https://github.com/OctoMap/octomap_mapping.git
+    local-name: octomap_mapping
+    version: master
+- git:
+    uri: https://github.com/PR2/pr2_robot.git
+    local-name: pr2_robot
+    version: hydro-devel
+
